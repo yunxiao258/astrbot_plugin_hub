@@ -1,0 +1,53 @@
+# AstrBot 插件生态中枢与 Web 管理面板（astrbot_plugin_hub）
+
+将全部自研 AstrBot 插件打通为一套自动化联动生态，并提供开箱即用的端口 Web 可视化管理面板。
+
+- 作者：云晓
+- 版本：1.0.0
+- 许可证：MIT（详见 `LICENSE`）
+
+## 核心特性
+
+1. **标准零侵入联动协议（Protocol v1）**
+   - 所有 20 个生态插件仅内置极简无依赖桥接接口（`hub_status()` / `hub_action()` / `emit_hub_event()`），未安装本中枢时 100% 独立运行；安装本中枢后自动发现并建立双向联动。
+2. **10 条开箱即用自动化联动管线 + 自定义规则**
+   - `digest_todo_to_memo`：群聊记忆待办自动同步写入备忘录（`chat_digest` → `memo`）
+   - `digest_email_copy`：每日群聊摘要自动抄送邮箱（`chat_digest` → `sendmail`）
+   - `antiflood_share_bots`：防刷屏识别/标记的 Bot 名单自动共享给群统计、智能静默与忽略互@（`anti_flood` → `group_stats` / `smart_silence` / `ignore_at`）
+   - `antispam_to_context`：防扰拦截/静默事件自动归档至上下文分析事件审计流（`anti_flood`/`ignore_at`/`smart_silence` → `context_analyzer`）
+   - `ops_alerts_to_digest` & `ops_alerts_to_mail`：远程任务失败/完成、机器离线、GitHub Release/Star 异动自动沉淀群记忆并支持邮件告警
+   - `points_economy_bridge`：小游戏、群统计、每日运势与互动积分统一汇总至生态积分榜并反哺群统计
+   - `lucky_fortune_music_bonus`：抽到高分大吉运势（默认 `>= 85`）自动向点歌插件赠送额外当日点歌额度（`fortune` → `music_custom`）
+   - `news_weather_to_digest`：新闻与天气预警推送自动沉淀至群聊记忆精华
+   - `qa_translator_to_digest`：新增问答与长文翻译（`>= 60` 字）自动归档知识精华
+   - 支持在 Web 面板随时创建/删除自定义规则，并自带防循环重入保护。
+3. **内置端口 Web 可视化管理面板（默认 `http://127.0.0.1:8686`）**
+   - **安全分级鉴权**：监听 `127.0.0.1` 本机访问默认免登；当配置 `web_host` 为 `0.0.0.0` 暴露局域网（或开启 `require_auth_on_localhost`）时，自动启用管理员 Token 强制鉴权（首次启动自动生成 32 位随机令牌并落盘 `data/hub_token.txt`）。
+   - **四大模块**：全景仪表盘（含交互式 SVG 联动拓扑图）、联动规则与实时事件流、跨插件数据中心与动作触发台、基于 `_conf_schema.json` 自动渲染的在线配置编辑器（敏感字段自动脱敏且保存不覆盖原密文）。
+
+## 聊天指令
+
+统一入口 `/中枢`（别名 `/hub`、`/面板`、`/联动`）：
+
+| 指令 | 说明 | 权限 |
+|------|------|------|
+| `/中枢` / `/中枢 状态` | 查看生态插件在线数、联动规则与事件统计 | 所有人 |
+| `/中枢 面板` | 查看 Web 管理面板地址与鉴权模式（私聊管理员显示 Token） | 所有人 |
+| `/中枢 联动 [列表 \| 开启 <ID> \| 关闭 <ID>]` | 查看或动态启停自动化联动管线 | 开关限管理员 |
+| `/中枢 事件 [N]` | 查看最近跨插件联动事件流 | 所有人 |
+| `/中枢 积分` | 查看跨插件统一生态积分榜 | 所有人 |
+| `/中枢 触发 <插件> <动作> [JSON]` | 手动调用任意已接入插件的 `hub_action` | 管理员 |
+| `/中枢 帮助` | 查看完整帮助 | 所有人 |
+
+## 开发与测试
+
+```bash
+python test_hub.py
+```
+
+依赖：`aiohttp`、`pyyaml`（均为 AstrBot 运行环境内置依赖）。
+
+## 更新记录
+
+### v1.0.0
+- 首发：跨插件事件总线、10 条内置自动化联动管线 + 自定义规则、全生态统一积分账本、20+ 插件注册与在线配置热更新编辑器、内置端口 Web 管理面板（`127.0.0.1:8686` 本机免登 / 外网自动强制 Token 鉴权）与 GitHub Actions CI。

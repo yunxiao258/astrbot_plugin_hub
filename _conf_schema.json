@@ -1,0 +1,72 @@
+{
+  "web_enabled": {
+    "description": "是否启动内置 Web 可视化管理面板",
+    "type": "bool",
+    "default": true
+  },
+  "web_host": {
+    "description": "Web 管理面板监听地址（默认 127.0.0.1 仅本机访问且免登录；改为 0.0.0.0 暴露局域网时将自动启用 Token 强制鉴权）",
+    "type": "string",
+    "default": "127.0.0.1"
+  },
+  "web_port": {
+    "description": "Web 管理面板监听端口（默认 8686，已避开 AstrBot 6185 与其他插件常用端口）",
+    "type": "int",
+    "default": 8686
+  },
+  "web_token": {
+    "description": "Web 管理面板管理员访问令牌/密码（留空时首次启动自动生成随机 32 位令牌并保存在 data/hub_token.txt）",
+    "type": "string",
+    "default": ""
+  },
+  "require_auth_on_localhost": {
+    "description": "本机 127.0.0.1 访问是否也强制要求 Token 登录（默认关闭，仅外网/局域网监听时强制）",
+    "type": "bool",
+    "default": false
+  },
+  "auto_linkage_enabled": {
+    "description": "跨插件自动联动总开关（开启后所有已安装插件自动按规则联动）",
+    "type": "bool",
+    "default": true
+  },
+  "digest_copy_email": {
+    "description": "群聊每日摘要自动抄送邮箱（留空则不自动抄送；填写后配合 sendmail 插件自动发信）",
+    "type": "string",
+    "default": ""
+  },
+  "ops_alert_email": {
+    "description": "运维告警自动抄送邮箱（远程任务失败/机器离线/GitHub Release 通知；留空则仅归档到群记忆）",
+    "type": "string",
+    "default": ""
+  },
+  "ops_archive_umo": {
+    "description": "运维事件自动归档至群聊记忆摘要的目标会话 UMO（留空则沿用事件自带会话 UMO）",
+    "type": "string",
+    "default": ""
+  },
+  "fortune_bonus_threshold": {
+    "description": "运势评分达到该阈值时自动为点歌插件（music_custom）赠送额外点歌配额",
+    "type": "int",
+    "default": 85
+  },
+  "fortune_bonus_quota": {
+    "description": "大吉运势每次赠送的额外点歌配额次数",
+    "type": "int",
+    "default": 2
+  },
+  "max_event_history": {
+    "description": "跨插件事件流历史保留最大条数",
+    "type": "int",
+    "default": 500
+  },
+  "admin_umos": {
+    "description": "额外管理员会话 UMO 白名单（英文逗号分隔；同时自动认可平台管理员）",
+    "type": "string",
+    "default": ""
+  },
+  "admin_user_ids": {
+    "description": "额外管理员用户 ID 白名单（英文逗号分隔）",
+    "type": "string",
+    "default": ""
+  }
+}
