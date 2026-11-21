@@ -281,6 +281,30 @@ class TestPluginHub(unittest.TestCase):
 
         asyncio.run(_run())
 
+    def test_security_path_traversal_and_xss_protection(self) -> None:
+        async def _run():
+            await self.hub.initialize()
+            base = self.hub.web_server.url
+            # 1. Path traversal rejected in registry and HTTP API
+            with self.assertRaises(ValueError):
+                self.hub.registry.get_plugin_config("../etc")
+            with self.assertRaises(ValueError):
+                self.hub.registry.save_plugin_config("..\\bad", {})
+
+            async with aiohttp.ClientSession(cookie_jar=aiohttp.CookieJar(unsafe=True)) as cli:
+                async with cli.get(f"{base}/api/plugins/..%2Fsecret/config") as r:
+                    self.assertEqual(r.status, 400)
+                async with cli.post(f"{base}/api/plugins/bad$name/config", json={"enabled": True}) as r:
+                    self.assertEqual(r.status, 400)
+                # 2. Dashboard HTML includes strict esc() XSS sanitizer
+                async with cli.get(f"{base}/") as r:
+                    html = await r.text()
+                    self.assertIn("function esc(v)", html)
+                    self.assertIn("esc(u.nickname)", html)
+            await self.hub.terminate()
+
+        asyncio.run(_run())
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=1)

@@ -346,6 +346,15 @@ pre.json-box {
 <script>
 let STATE = { overview: null, plugins: [], rules: [], events: [], currentCfgPlugin: null, currentCfgFields: [] };
 
+function esc(v) {
+  return String(v ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function toast(msg) {
   const el = document.getElementById('toast');
   el.textContent = msg;
@@ -466,10 +475,11 @@ function renderTopology(ov) {
       pos[p.name] = { x: col.x, y, color: col.color };
       const r = cat === 'hub' ? 30 : 14;
       const opacity = p.online ? 1 : 0.4;
-      nodesHtml += `<g style="cursor:pointer;opacity:${opacity}" onclick="openPluginConfig('${p.name}')">
+      const pNameEsc = esc(p.name);
+      nodesHtml += `<g style="cursor:pointer;opacity:${opacity}" onclick="openPluginConfig('${pNameEsc}')">
         <circle cx="${col.x}" cy="${y}" r="${r}" fill="${col.color}" fill-opacity="0.22" stroke="${col.color}" stroke-width="${cat==='hub'?3:1.8}"/>
-        <text x="${col.x}" y="${y+5}" text-anchor="middle" font-size="${cat==='hub'?18:12}" fill="#fff">${p.icon}</text>
-        <text x="${col.x}" y="${y+(cat==='hub'?46:26)}" text-anchor="middle" font-size="11" fill="#cbd5e1">${p.display_name}</text>
+        <text x="${col.x}" y="${y+5}" text-anchor="middle" font-size="${cat==='hub'?18:12}" fill="#fff">${esc(p.icon)}</text>
+        <text x="${col.x}" y="${y+(cat==='hub'?46:26)}" text-anchor="middle" font-size="11" fill="#cbd5e1">${esc(p.display_name)}</text>
       </g>`;
     });
   });
@@ -498,23 +508,24 @@ function renderPlugins() {
     return true;
   });
   document.getElementById('pluginGrid').innerHTML = list.map(p => {
-    const mChips = Object.entries(p.metrics || {}).slice(0, 5).map(([k, v]) => `<span class="metric-chip">${k}: ${v}</span>`).join('');
+    const mChips = Object.entries(p.metrics || {}).slice(0, 5).map(([k, v]) => `<span class="metric-chip">${esc(k)}: ${esc(v)}</span>`).join('');
+    const pName = esc(p.name);
     return `<div class="p-card">
       <div class="p-head">
-        <div class="p-title">${p.icon} ${p.display_name}</div>
+        <div class="p-title">${esc(p.icon)} ${esc(p.display_name)}</div>
         <div style="display:flex;gap:5px">
-          ${p.protocol_version ? '<span class="badge proto">联动 v'+p.protocol_version+'</span>' : ''}
+          ${p.protocol_version ? '<span class="badge proto">联动 v'+esc(p.protocol_version)+'</span>' : ''}
           <span class="badge ${p.online?'on':'off'}">${p.online?'在线':'离线'}</span>
         </div>
       </div>
-      <div style="font-size:11px;color:var(--muted)">${p.name} · v${p.version}</div>
-      <div class="p-desc">${p.desc || '暂无描述'}</div>
+      <div style="font-size:11px;color:var(--muted)">${pName} · v${esc(p.version)}</div>
+      <div class="p-desc">${esc(p.desc || '暂无描述')}</div>
       <div class="metrics">${mChips || '<span class="metric-chip">无运行指标</span>'}</div>
       <div class="p-foot">
-        <span style="font-size:11px;color:var(--muted)">动作 ${p.actions.length} · 配置项 ${p.schema_count}</span>
+        <span style="font-size:11px;color:var(--muted)">动作 ${(p.actions||[]).length} · 配置项 ${Number(p.schema_count||0)}</span>
         <div style="display:flex;gap:6px">
-          ${p.has_schema ? `<button class="btn btn-sm" onclick="openPluginConfig('${p.name}')">配置</button>` : ''}
-          ${p.actions.length ? `<button class="btn btn-sm btn-primary" onclick="jumpToAction('${p.name}')">操作</button>` : ''}
+          ${p.has_schema ? `<button class="btn btn-sm" onclick="openPluginConfig('${pName}')">配置</button>` : ''}
+          ${(p.actions||[]).length ? `<button class="btn btn-sm btn-primary" onclick="jumpToAction('${pName}')">操作</button>` : ''}
         </div>
       </div>
     </div>`;
@@ -522,28 +533,29 @@ function renderPlugins() {
 }
 
 function renderRules() {
-  document.getElementById('ruleGrid').innerHTML = STATE.rules.map(r => `
-    <div class="rule-card">
+  document.getElementById('ruleGrid').innerHTML = STATE.rules.map(r => {
+    const rid = esc(r.id);
+    return `<div class="rule-card">
       <div class="p-head">
         <div>
-          <strong style="font-size:14px">${r.name}</strong>
-          <div style="font-size:11px;color:var(--muted)">ID: ${r.id} · ${r.builtin ? '内置管线' : '自定义规则'}</div>
+          <strong style="font-size:14px">${esc(r.name)}</strong>
+          <div style="font-size:11px;color:var(--muted)">ID: ${rid} · ${r.builtin ? '内置管线' : '自定义规则'}</div>
         </div>
         <label class="switch">
-          <input type="checkbox" ${r.enabled ? 'checked' : ''} onchange="toggleRule('${r.id}', this.checked)">
+          <input type="checkbox" ${r.enabled ? 'checked' : ''} onchange="toggleRule('${rid}', this.checked)">
           <span class="slider"></span>
         </label>
       </div>
-      <div style="font-size:12px;color:var(--muted)">${r.description || ''}</div>
+      <div style="font-size:12px;color:var(--muted)">${esc(r.description || '')}</div>
       <div style="font-size:11px;color:#cbd5e1">
-        事件：<span class="code-inline">${(r.events||[]).join(', ')}</span>
+        事件：<span class="code-inline">${esc((r.events||[]).join(', '))}</span>
       </div>
       <div class="p-foot">
-        <span style="font-size:11px;color:var(--muted)">触发 ${r.triggered_count || 0} 次 ${r.last_triggered ? '· ' + r.last_triggered.slice(5) : ''}</span>
-        ${r.builtin ? '' : `<button class="btn btn-sm btn-danger" onclick="deleteCustomRule('${r.id}')">删除</button>`}
+        <span style="font-size:11px;color:var(--muted)">触发 ${Number(r.triggered_count || 0)} 次 ${r.last_triggered ? '· ' + esc(String(r.last_triggered).slice(5)) : ''}</span>
+        ${r.builtin ? '' : `<button class="btn btn-sm btn-danger" onclick="deleteCustomRule('${rid}')">删除</button>`}
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 async function toggleRule(id, enabled) {
@@ -589,13 +601,13 @@ function renderEvents() {
   const rows = STATE.events.filter(e => !kw || (e.event_type || '').toLowerCase().includes(kw) || (e.source || '').toLowerCase().includes(kw));
   document.getElementById('eventBody').innerHTML = rows.length ? rows.map(e => {
     const disp = (e.dispatched || []).map(d =>
-      `<span class="badge ${d.ok?'on':'off'}">${d.rule} → ${d.target.replace('astrbot_plugin_','')}.${d.action} (${d.ms}ms)</span>`
+      `<span class="badge ${d.ok?'on':'off'}">${esc(d.rule)} → ${esc(String(d.target||'').replace('astrbot_plugin_',''))}.${esc(d.action)} (${Number(d.ms||0)}ms)</span>`
     ).join(' ');
     return `<tr>
-      <td style="white-space:nowrap;color:var(--muted)">${(e.ts||'').slice(5)}</td>
-      <td>${(e.source||'').replace('astrbot_plugin_','')}</td>
-      <td><span class="code-inline">${e.event_type}</span></td>
-      <td style="max-width:340px;word-break:break-all;font-size:12px;color:#cbd5e1">${JSON.stringify(e.payload || {}).slice(0,180)}</td>
+      <td style="white-space:nowrap;color:var(--muted)">${esc(String(e.ts||'').slice(5))}</td>
+      <td>${esc(String(e.source||'').replace('astrbot_plugin_',''))}</td>
+      <td><span class="code-inline">${esc(e.event_type)}</span></td>
+      <td style="max-width:340px;word-break:break-all;font-size:12px;color:#cbd5e1">${esc(JSON.stringify(e.payload || {}).slice(0,180))}</td>
       <td>${disp || '<span style="color:var(--muted);font-size:12px">已记录</span>'}</td>
     </tr>`;
   }).join('') : '<tr><td colspan="5" style="color:var(--muted);text-align:center">暂无跨插件事件</td></tr>';
@@ -624,13 +636,13 @@ async function loadDataPanel(panel, btn) {
   const wrap = document.getElementById('dataPanelContent');
   wrap.innerHTML = '<div style="color:var(--muted)">加载数据中...</div>';
   try {
-    const res = await api('/api/data/' + panel);
+    const res = await api('/api/data/' + encodeURIComponent(panel));
     if (panel === 'points') {
       const lb = res.eco_leaderboard || [];
       wrap.innerHTML = `
         <h3 style="font-size:14px;margin-bottom:10px">🏆 全生态统一积分榜（汇总游戏 / 群统计 / 运势 / 互动）</h3>
         <table><thead><tr><th>排名</th><th>用户</th><th>总积分</th><th>来源明细</th></tr></thead><tbody>
-        ${lb.length ? lb.map((u, i) => `<tr><td>#${i+1}</td><td>${u.nickname} (${u.user_id})</td><td><strong>${u.total}</strong></td><td>${JSON.stringify(u.sources||{})}</td></tr>`).join('') : '<tr><td colspan="4" style="color:var(--muted)">暂无积分记录</td></tr>'}
+        ${lb.length ? lb.map((u, i) => `<tr><td>#${i+1}</td><td>${esc(u.nickname)} (${esc(u.user_id)})</td><td><strong>${Number(u.total||0)}</strong></td><td>${esc(JSON.stringify(u.sources||{}))}</td></tr>`).join('') : '<tr><td colspan="4" style="color:var(--muted)">暂无积分记录</td></tr>'}
         </tbody></table>`;
     } else if (panel === 'antispam') {
       const bots = res.bot_ids || [];
@@ -638,13 +650,13 @@ async function loadDataPanel(panel, btn) {
         <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;">
           <input type="text" id="newBotId" placeholder="输入 QQ/Bot ID 一键同步全生态">
           <button class="btn btn-primary btn-sm" onclick="markBotEverywhere()">标记为 Bot 并全生态同步</button>
-          <span style="font-size:12px;color:var(--muted)">当前共享 Bot 名单：${bots.join(', ') || '空'}</span>
+          <span style="font-size:12px;color:var(--muted)">当前共享 Bot 名单：${esc(bots.join(', ') || '空')}</span>
         </div>
-        <pre class="json-box">${JSON.stringify(res.plugins, null, 2)}</pre>`;
+        <pre class="json-box">${esc(JSON.stringify(res.plugins, null, 2))}</pre>`;
     } else {
-      wrap.innerHTML = `<pre class="json-box">${JSON.stringify(res, null, 2)}</pre>`;
+      wrap.innerHTML = `<pre class="json-box">${esc(JSON.stringify(res, null, 2))}</pre>`;
     }
-  } catch (e) { wrap.innerHTML = `<div style="color:var(--red)">加载失败：${e.message}</div>`; }
+  } catch (e) { wrap.innerHTML = `<div style="color:var(--red)">加载失败：${esc(e.message)}</div>`; }
 }
 
 async function markBotEverywhere() {
@@ -663,7 +675,7 @@ function populateActionPlugins() {
   const sel = document.getElementById('actPlugin');
   const prev = sel.value;
   const withAct = STATE.plugins.filter(p => p.online && p.actions && p.actions.length);
-  sel.innerHTML = withAct.map(p => `<option value="${p.name}">${p.icon} ${p.display_name} (${p.name})</option>`).join('');
+  sel.innerHTML = withAct.map(p => `<option value="${esc(p.name)}">${esc(p.icon)} ${esc(p.display_name)} (${esc(p.name)})</option>`).join('');
   if (prev && withAct.some(p => p.name === prev)) sel.value = prev;
   fillPluginActions();
 }
@@ -672,7 +684,7 @@ function fillPluginActions() {
   const pname = document.getElementById('actPlugin').value;
   const p = STATE.plugins.find(x => x.name === pname);
   const sel = document.getElementById('actName');
-  sel.innerHTML = (p && p.actions ? p.actions : []).map(a => `<option value="${a}">${a}</option>`).join('');
+  sel.innerHTML = (p && p.actions ? p.actions : []).map(a => `<option value="${esc(a)}">${esc(a)}</option>`).join('');
 }
 
 function jumpToAction(pname) {
@@ -700,12 +712,13 @@ async function runQuickAction() {
 
 function renderConfigSidebar() {
   const list = STATE.plugins.filter(p => p.has_schema);
-  document.getElementById('cfgPluginList').innerHTML = list.map(p =>
-    `<div class="side-item ${STATE.currentCfgPlugin===p.name?'active':''}" onclick="openPluginConfig('${p.name}')">
-      <span>${p.icon} ${p.display_name}</span>
-      <span style="font-size:11px">${p.schema_count}</span>
-    </div>`
-  ).join('');
+  document.getElementById('cfgPluginList').innerHTML = list.map(p => {
+    const pName = esc(p.name);
+    return `<div class="side-item ${STATE.currentCfgPlugin===p.name?'active':''}" onclick="openPluginConfig('${pName}')">
+      <span>${esc(p.icon)} ${esc(p.display_name)}</span>
+      <span style="font-size:11px">${Number(p.schema_count||0)}</span>
+    </div>`;
+  }).join('');
 }
 
 async function openPluginConfig(pname) {
@@ -719,24 +732,24 @@ async function openPluginConfig(pname) {
     document.getElementById('cfgSaveBtn').style.display = 'inline-block';
     document.getElementById('cfgFormWrap').innerHTML = STATE.currentCfgFields.map(f => {
       let ctrl = '';
-      const id = 'cf_' + f.key;
+      const id = 'cf_' + esc(f.key);
       if (f.type === 'bool') {
         ctrl = `<label class="switch"><input type="checkbox" id="${id}" ${f.value ? 'checked' : ''}><span class="slider"></span></label>`;
       } else if (f.type === 'int' || f.type === 'float') {
-        ctrl = `<input type="number" step="${f.type==='float'?'0.01':'1'}" id="${id}" value="${f.value ?? ''}" style="width:220px">`;
+        ctrl = `<input type="number" step="${f.type==='float'?'0.01':'1'}" id="${id}" value="${esc(f.value ?? '')}" style="width:220px">`;
       } else if (f.is_secret) {
-        ctrl = `<input type="password" id="${id}" value="${f.value ?? ''}" placeholder="${f.has_value?'保持 ****** 即不修改原密文':'输入密文'}" style="width:100%">`;
+        ctrl = `<input type="password" id="${id}" value="${esc(f.value ?? '')}" placeholder="${f.has_value?'保持 ****** 即不修改原密文':'输入密文'}" style="width:100%">`;
       } else if (f.type === 'list') {
         const txt = Array.isArray(f.value) ? f.value.join(', ') : (f.value ?? '');
-        ctrl = `<input type="text" id="${id}" value="${String(txt).replace(/"/g,'&quot;')}" placeholder="逗号分隔多项" style="width:100%">`;
+        ctrl = `<input type="text" id="${id}" value="${esc(txt)}" placeholder="逗号分隔多项" style="width:100%">`;
       } else {
-        ctrl = `<input type="text" id="${id}" value="${String(f.value ?? '').replace(/"/g,'&quot;')}" style="width:100%">`;
+        ctrl = `<input type="text" id="${id}" value="${esc(f.value ?? '')}" style="width:100%">`;
       }
       return `<div class="form-row">
         <div class="form-label">
-          <strong>${f.key} ${f.is_secret ? '🔒' : ''}</strong>
-          <span>${f.description || ''}</span>
-          ${f.hint ? `<span style="color:var(--accent)">${f.hint}</span>` : ''}
+          <strong>${esc(f.key)} ${f.is_secret ? '🔒' : ''}</strong>
+          <span>${esc(f.description || '')}</span>
+          ${f.hint ? `<span style="color:var(--accent)">${esc(f.hint)}</span>` : ''}
         </div>
         <div>${ctrl}</div>
       </div>`;

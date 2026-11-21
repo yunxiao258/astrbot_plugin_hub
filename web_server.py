@@ -215,7 +215,10 @@ class HubWebServer:
 
     async def _handle_get_config(self, request: web.Request) -> web.Response:
         name = request.match_info["name"]
-        return web.json_response({"ok": True, **self.hub.registry.get_plugin_config(name)})
+        try:
+            return web.json_response({"ok": True, **self.hub.registry.get_plugin_config(name)})
+        except ValueError as exc:
+            return web.json_response({"ok": False, "error": str(exc)}, status=400)
 
     async def _handle_save_config(self, request: web.Request) -> web.Response:
         name = request.match_info["name"]

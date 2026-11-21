@@ -3,9 +3,7 @@
 
 from __future__ import annotations
 
-import asyncio
 import inspect
-import json
 import os
 import re
 from typing import Any
@@ -19,6 +17,15 @@ SECRET_FIELD_RE = re.compile(
     re.IGNORECASE,
 )
 SECRET_MASK = "******"
+_SAFE_PLUGIN_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$")
+
+
+def validate_plugin_name(plugin_name: str) -> str:
+    """严格校验插件目录名，防止路径穿越（../、斜杠、空名等）。"""
+    name = (plugin_name or "").strip()
+    if not name or ".." in name or "/" in name or "\\" in name or not _SAFE_PLUGIN_NAME_RE.match(name):
+        raise ValueError(f"非法插件名：{plugin_name!r}")
+    return name
 
 # 全部 21 个生态插件的分类与元数据映射
 ECOSYSTEM_META: dict[str, dict[str, str]] = {
@@ -108,9 +115,16 @@ class PluginRegistry:
             entry["activated"] = True
         return live
 
+    def _safe_child_path(self, base_dir: str, *parts: str) -> str:
+        base_abs = os.path.abspath(base_dir)
+        target = os.path.abspath(os.path.join(base_abs, *parts))
+        if os.path.commonpath([base_abs, target]) != base_abs:
+            raise ValueError(f"路径越界被拒绝：{parts}")
+        return target
+
     def _read_disk_metadata(self, plugin_name: str) -> dict[str, Any]:
-        pdir = os.path.join(self.plugins_dir, plugin_name)
-        meta_path = os.path.join(pdir, "metadata.yaml")
+        name = validate_plugin_name(plugin_name)
+        meta_path = self._safe_child_path(self.plugins_dir, name, "metadata.yaml")
         if not os.path.isfile(meta_path):
             return {}
         try:
@@ -121,12 +135,14 @@ class PluginRegistry:
             return {}
 
     def _read_schema(self, plugin_name: str) -> dict[str, Any]:
-        pdir = os.path.join(self.plugins_dir, plugin_name)
-        schema_path = os.path.join(pdir, "_conf_schema.json")
+        name = validate_plugin_name(plugin_name)
+        schema_path = self._safe_child_path(self.plugins_dir, name, "_conf_schema.json")
         return safe_read_json(schema_path, {})
 
     def _config_file_path(self, plugin_name: str) -> str:
-        return os.path.join(self.astrbot_data_dir, "config", f"{plugin_name}_config.json")
+        name = validate_plugin_name(plugin_name)
+        cfg_root = os.path.join(self.astrbot_data_dir, "config")
+        return self._safe_child_path(cfg_root, f"{name}_config.json")
 
     def get_live_instance(self, plugin_name: str) -> Any:
         live = self._discover_live_stars()

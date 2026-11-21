@@ -15,15 +15,16 @@ from typing import Any
 HUB_BUS_KEY = "_astrbot_plugin_hub_bus"
 
 
-def atomic_write_json(path: str, data: Any) -> None:
+def atomic_write_json(path: str, data: Any, do_fsync: bool = False) -> None:
     parent = os.path.dirname(os.path.abspath(path))
     os.makedirs(parent, exist_ok=True)
     fd, tmp_path = tempfile.mkstemp(prefix=".hub_tmp_", suffix=".json", dir=parent)
     try:
         with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
-            f.flush()
-            os.fsync(f.fileno())
+            if do_fsync:
+                f.flush()
+                os.fsync(f.fileno())
         os.replace(tmp_path, path)
     except Exception:
         try:
@@ -187,7 +188,29 @@ class HubEventBus:
         self._eco_points: dict[str, dict[str, dict[str, Any]]] = {}
         self._pending_tasks: set[asyncio.Task] = set()
         self._dispatch_depth = 0
+        self._events_dirty = False
+        self._last_events_flush = 0.0
+        self._points_dirty = False
+        self._last_points_flush = 0.0
         self.reload()
+
+    def _flush_events(self, force: bool = False) -> None:
+        now = time.monotonic()
+        if not force and not self._events_dirty:
+            return
+        if force or (now - self._last_events_flush >= 5.0):
+            atomic_write_json(self.events_path, self._events[-self.max_history :])
+            self._events_dirty = False
+            self._last_events_flush = now
+
+    def _flush_points(self, force: bool = False) -> None:
+        now = time.monotonic()
+        if not force and not self._points_dirty:
+            return
+        if force or (now - self._last_points_flush >= 3.0):
+            atomic_write_json(self.points_path, self._eco_points)
+            self._points_dirty = False
+            self._last_points_flush = now
 
     def reload(self) -> None:
         self._events = safe_read_json(self.events_path, [])
@@ -199,9 +222,11 @@ class HubEventBus:
         self._eco_points = safe_read_json(self.points_path, {})
 
     def save_all(self) -> None:
-        atomic_write_json(self.events_path, self._events[-self.max_history :])
-        atomic_write_json(self.rules_path, self._rule_state)
-        atomic_write_json(self.points_path, self._eco_points)
+        atomic_write_json(self.events_path, self._events[-self.max_history :], do_fsync=True)
+        atomic_write_json(self.rules_path, self._rule_state, do_fsync=True)
+        atomic_write_json(self.points_path, self._eco_points, do_fsync=True)
+        self._events_dirty = False
+        self._points_dirty = False
 
     # ==================== 规则管理 ====================
 
@@ -335,7 +360,8 @@ class HubEventBus:
         rec["updated_at"] = _now_iso()
         if reason:
             rec["last_reason"] = str(reason)[:80]
-        atomic_write_json(self.points_path, self._eco_points)
+        self._points_dirty = True
+        self._flush_points(force=False)
         return dict(rec)
 
     def get_eco_leaderboard(self, scope: str | None = None, limit: int = 20) -> list[dict[str, Any]]:
@@ -398,7 +424,8 @@ class HubEventBus:
         self._events.append(record)
         if len(self._events) > self.max_history:
             self._events = self._events[-self.max_history :]
-        atomic_write_json(self.events_path, self._events)
+        self._events_dirty = True
+        self._flush_events(force=False)
 
         try:
             loop = asyncio.get_running_loop()
@@ -432,12 +459,15 @@ class HubEventBus:
         self._events.append(record)
         if len(self._events) > self.max_history:
             self._events = self._events[-self.max_history :]
+        self._events_dirty = True
         await self._dispatch_record(record)
         return record
 
     async def drain(self) -> None:
         if self._pending_tasks:
             await asyncio.gather(*list(self._pending_tasks), return_exceptions=True)
+        self._flush_events(force=True)
+        self._flush_points(force=True)
 
     def recent_events(self, limit: int = 50, event_type: str = "", source: str = "") -> list[dict[str, Any]]:
         items = list(self._events)
@@ -696,4 +726,5 @@ class HubEventBus:
                     await self._call_target(record, rid, t_plug, t_act, merged_params)
         finally:
             self._dispatch_depth = max(0, self._dispatch_depth - 1)
-            atomic_write_json(self.events_path, self._events[-self.max_history :])
+            self._events_dirty = True
+            self._flush_events(force=False)
