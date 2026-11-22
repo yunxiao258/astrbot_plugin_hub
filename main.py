@@ -30,7 +30,7 @@ PLUGIN_DESC = (
     "AstrBot 全插件联动中枢与 Web 管理面板：提供跨插件事件总线、10 条开箱即用自动化联动管线、"
     "生态统一积分榜、在线配置编辑器与端口可视化管理台（默认 127.0.0.1:8686）"
 )
-PLUGIN_VERSION = "1.1.0"
+PLUGIN_VERSION = "1.1.1"
 PLUGIN_REPO = "https://github.com/yunxiao258/astrbot_plugin_hub"
 
 _CMD_RE = re.compile(r"^[\\/／]?\s*(?:中枢|hub|面板|联动)\b\s*(.*)$", re.IGNORECASE | re.S)

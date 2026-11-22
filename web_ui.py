@@ -193,6 +193,7 @@ html, body {
   background: var(--green);
   box-shadow: 0 0 8px rgba(52, 211, 153, 0.85);
   flex-shrink: 0;
+  transition: background 0.25s var(--ease), box-shadow 0.25s var(--ease);
 }
 .pulse-dot::after {
   content: "";
@@ -202,6 +203,11 @@ html, body {
   border: 1.5px solid rgba(52, 211, 153, 0.6);
   animation: pulseRing 2.4s cubic-bezier(0.2, 0.7, 0.3, 1) infinite;
 }
+.pulse-dot.offline {
+  background: var(--red);
+  box-shadow: 0 0 8px rgba(248, 113, 113, 0.75);
+}
+.pulse-dot.offline::after { animation: none; opacity: 0; }
 @keyframes pulseRing {
   0%   { transform: scale(0.75); opacity: 0.9; }
   75%  { transform: scale(1.95); opacity: 0; }
@@ -1025,7 +1031,7 @@ pre.json-box {
     <div>
       <h1>AstrBot 插件生态中枢</h1>
       <div class="brand-sub-wrap">
-        <span class="pulse-dot" aria-hidden="true"></span>
+        <span class="pulse-dot" id="statusDot" aria-hidden="true"></span>
         <small id="subInfo">加载中...</small>
       </div>
     </div>
@@ -1201,6 +1207,36 @@ pre.json-box {
 let STATE = { overview: null, plugins: [], rules: [], events: [], currentCfgPlugin: null, currentCfgFields: [] };
 let TOPO_VIEW = { scale: 1, tx: 0, ty: 0, dragging: false, startX: 0, startY: 0, origTx: 0, origTy: 0 };
 let TOPO_META = { nodes: {}, adj: {} };
+let UPTIME_SYNC = { host: '', port: '', baseSeconds: 0, syncedAt: 0, online: false };
+let _refreshInFlight = false;
+
+function formatUptime(totalSec) {
+  const s = Math.max(0, Math.floor(Number(totalSec) || 0));
+  if (s < 60) return `${s}s`;
+  const days = Math.floor(s / 86400);
+  const hrs = Math.floor((s % 86400) / 3600);
+  const mins = Math.floor((s % 3600) / 60);
+  const secs = s % 60;
+  const pad = n => String(n).padStart(2, '0');
+  if (days > 0) return `${days}d ${pad(hrs)}h ${pad(mins)}m ${pad(secs)}s`;
+  if (hrs > 0) return `${hrs}h ${pad(mins)}m ${pad(secs)}s`;
+  return `${mins}m ${pad(secs)}s`;
+}
+
+function renderUptimeLine() {
+  const el = document.getElementById('subInfo');
+  const dot = document.getElementById('statusDot');
+  if (!el || !UPTIME_SYNC.syncedAt) return;
+  if (!UPTIME_SYNC.online) {
+    if (dot) dot.classList.add('offline');
+    el.textContent = `监听 ${UPTIME_SYNC.host}:${UPTIME_SYNC.port} · 连接中断，正在重试...`;
+    return;
+  }
+  if (dot) dot.classList.remove('offline');
+  const elapsed = Math.floor((Date.now() - UPTIME_SYNC.syncedAt) / 1000);
+  const curSec = UPTIME_SYNC.baseSeconds + Math.max(0, elapsed);
+  el.textContent = `监听 ${UPTIME_SYNC.host}:${UPTIME_SYNC.port} · 运行 ${formatUptime(curSec)} · 生态协议 v1`;
+}
 
 function esc(v) {
   return String(v ?? '')
@@ -1270,7 +1306,9 @@ async function doLogout() {
   document.getElementById('loginModal').style.display = 'flex';
 }
 
-async function refreshAll(manual = false) {
+async function refreshAll(manual = false, silent = false) {
+  if (_refreshInFlight) return;
+  _refreshInFlight = true;
   if (manual) {
     const ic = document.getElementById('refreshIcon');
     if (ic) {
@@ -1295,17 +1333,36 @@ async function refreshAll(manual = false) {
     badge.textContent = auth.required ? '🔐 Token 鉴权已启用' : '🔓 本机免登模式';
     badge.className = 'pill' + (auth.required ? '' : ' warn');
     document.getElementById('logoutBtn').style.display = auth.required ? 'inline-flex' : 'none';
-    document.getElementById('subInfo').textContent = `监听 ${ov.server.host}:${ov.server.port} · 运行 ${ov.server.uptime_seconds}s · 生态协议 v1`;
+
+    UPTIME_SYNC = {
+      host: ov.server.host,
+      port: ov.server.port,
+      baseSeconds: Number(ov.server.uptime_seconds || 0),
+      syncedAt: Date.now(),
+      online: true,
+    };
+    renderUptimeLine();
 
     renderKPIs(ov);
-    renderTopology(ov);
+    const topoHovering = !!document.querySelector('#topoSvg.has-hover') || TOPO_VIEW.dragging;
+    if (!silent || !topoHovering) {
+      renderTopology(ov);
+    }
     renderPlugins();
     renderRules();
     renderEvents();
     renderConfigSidebar();
     populateActionPlugins();
   } catch (e) {
-    if (e.message !== '需要登录鉴权') toast('刷新失败：' + e.message);
+    if (e.message === '需要登录鉴权') {
+      UPTIME_SYNC.online = false;
+    } else {
+      UPTIME_SYNC.online = false;
+      renderUptimeLine();
+      if (!silent) toast('刷新失败：' + e.message);
+    }
+  } finally {
+    _refreshInFlight = false;
   }
 }
 
@@ -1905,6 +1962,23 @@ async function saveCurrentConfig() {
 }
 
 refreshAll();
+
+/* 每秒本地平滑递增运行时间（与服务端 uptime_seconds 基准对齐） */
+setInterval(renderUptimeLine, 1000);
+
+/* 每 15 秒静默同步后端状态、运行时间、KPI 与事件流（切回前台时立即同步） */
+setInterval(() => {
+  const modal = document.getElementById('loginModal');
+  if (document.hidden || (modal && modal.style.display === 'flex')) return;
+  refreshAll(false, true);
+}, 15000);
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    const modal = document.getElementById('loginModal');
+    if (!modal || modal.style.display !== 'flex') refreshAll(false, true);
+  }
+});
 </script>
 </body>
 </html>
