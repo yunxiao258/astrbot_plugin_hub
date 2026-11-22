@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import hmac
+import importlib
 import os
 import secrets
 import time
@@ -11,10 +12,26 @@ from typing import Any
 
 from aiohttp import web
 
-from .web_ui import DASHBOARD_HTML
+from . import web_ui as _web_ui
 
 LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1"}
 COOKIE_NAME = "astrbot_hub_token"
+_WEB_UI_MTIME: float = 0.0
+
+
+def _load_dashboard_html() -> str:
+    """按文件修改时间热读取最新面板 HTML，避免 AstrBot 热重载子模块缓存滞后。"""
+    global _WEB_UI_MTIME
+    ui_file = getattr(_web_ui, "__file__", "") or ""
+    if ui_file and os.path.isfile(ui_file):
+        try:
+            mt = os.path.getmtime(ui_file)
+            if _WEB_UI_MTIME and mt != _WEB_UI_MTIME:
+                importlib.reload(_web_ui)
+            _WEB_UI_MTIME = mt
+        except Exception:
+            pass
+    return _web_ui.DASHBOARD_HTML
 
 
 class HubWebServer:
@@ -158,7 +175,12 @@ class HubWebServer:
     # ==================== HTTP 路由处理 ====================
 
     async def _handle_index(self, request: web.Request) -> web.Response:
-        return web.Response(text=DASHBOARD_HTML, content_type="text/html", charset="utf-8")
+        return web.Response(
+            text=_load_dashboard_html(),
+            content_type="text/html",
+            charset="utf-8",
+            headers={"Cache-Control": "no-store, no-cache, must-revalidate"},
+        )
 
     async def _handle_health(self, request: web.Request) -> web.Response:
         return web.json_response({

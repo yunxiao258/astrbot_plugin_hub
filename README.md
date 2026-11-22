@@ -49,6 +49,9 @@ python test_hub.py
 
 ## 更新记录
 
+### v1.1.2
+- 修复 AstrBot 热重载插件仅重载 `main.py` 导致 `web_ui.py` / `web_server.py` 前端页面仍留在旧缓存中的问题：`main.py` 重载时自动同步刷新 `web_ui` 与 `web_server`，且面板首页改为按文件 mtime 热读取并附带 `Cache-Control: no-store` 防浏览器缓存
+
 ### v1.1.1
 - 修复 Web 面板顶栏运行时间静态不更新问题：新增每秒本地时钟递增（支持 `s / m / h / d` 自动友好格式化）与每 15 秒静默后台同步（含切回前台即时同步、断连红点提示及拓扑悬停/拖拽防闪烁保护）
 
