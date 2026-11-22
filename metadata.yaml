@@ -10,6 +10,6 @@ help: |
   - /中枢 积分 [排行]：查看全生态统一积分榜
   - /中枢 触发 <插件名> <动作> [JSON参数]：手动触发指定插件联动动作（管理员）
   - /中枢 帮助：查看完整帮助
-version: 1.0.1
+version: 1.1.0
 author: 云晓
 repo: https://github.com/yunxiao258/astrbot_plugin_hub
