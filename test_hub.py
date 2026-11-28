@@ -176,7 +176,34 @@ class TestPluginHub(unittest.TestCase):
             await self.hub.bus.emit_async("astrbot_plugin_qa", "qa.added", {"umo": "g:1", "question": "端口", "answer": "8686"})
             self.assertIn("[问答]", self.partners["astrbot_plugin_chat_digest"].calls[-1][1]["text"])
 
-            # 11. 自定义规则
+            # 11. vote_result_to_digest_and_points
+            await self.hub.bus.emit_async(
+                "astrbot_plugin_group_vote",
+                "group_vote.lottery_drawn",
+                {"umo": "g:1", "group_id": "1001", "prize": "奶茶", "winners": [{"user_id": "u88", "name": "锦鲤"}], "summary": "抽奖开奖：锦鲤"},
+            )
+            self.assertIn("[群抽奖]", self.partners["astrbot_plugin_chat_digest"].calls[-1][1]["text"])
+            self.assertEqual(self.partners["astrbot_plugin_group_stats"].calls[-1][1]["user_id"], "u88")
+
+            # 12. rss_radar_to_digest
+            await self.hub.bus.emit_async(
+                "astrbot_plugin_rss_radar",
+                "rss_radar.matched_entry",
+                {"umo": "g:1", "feed_name": "36氪", "title": "AI 大模型新进展", "summary": "[36氪] AI 大模型新进展"},
+            )
+            self.assertIn("[RSS]", self.partners["astrbot_plugin_chat_digest"].calls[-1][1]["text"])
+
+            # 13. url_watchdog_ops_bridge
+            await self.hub.bus.emit_async(
+                "astrbot_plugin_url_watchdog",
+                "url_watchdog.down",
+                {"umo": "g:1", "name": "主站", "target": "https://example.com", "summary": "站点主站宕机"},
+            )
+            self.assertIn("[站点监控/url_watchdog.down]", self.partners["astrbot_plugin_chat_digest"].calls[-1][1]["text"])
+            self.assertEqual(self.partners["astrbot_plugin_context_analyzer"].calls[-1][0], "record_external_event")
+            self.assertEqual(self.partners["astrbot_plugin_sendmail"].calls[-1][0], "send_mail")
+
+            # 14. 自定义规则
             cr = self.hub.bus.add_custom_rule("自定义转发", "astrbot_plugin_gay", "gay.tested", "astrbot_plugin_memo", "add_memo", {"umo": "g:1", "content": "记录一次测试"})
             await self.hub.bus.emit_async("astrbot_plugin_gay", "gay.tested", {"user_id": "u1"})
             self.assertEqual(self.partners["astrbot_plugin_memo"].calls[-1][1]["content"], "记录一次测试")

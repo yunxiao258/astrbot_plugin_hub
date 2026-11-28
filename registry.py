@@ -27,7 +27,7 @@ def validate_plugin_name(plugin_name: str) -> str:
         raise ValueError(f"非法插件名：{plugin_name!r}")
     return name
 
-# 全部 21 个生态插件的分类与元数据映射
+# 全部 24 个生态插件的分类与元数据映射
 ECOSYSTEM_META: dict[str, dict[str, str]] = {
     "astrbot_plugin_hub": {"label": "生态中枢与面板", "category": "hub", "icon": "🎛️"},
     "astrbot_plugin_chat_digest": {"label": "群聊记忆摘要", "category": "efficiency", "icon": "📝"},
@@ -35,6 +35,7 @@ ECOSYSTEM_META: dict[str, dict[str, str]] = {
     "astrbot_plugin_group_stats": {"label": "群统计报表", "category": "efficiency", "icon": "📊"},
     "astrbot_plugin_daily_news": {"label": "每日新闻播报", "category": "efficiency", "icon": "📰"},
     "astrbot_plugin_weather": {"label": "天气查询播报", "category": "efficiency", "icon": "🌤️"},
+    "astrbot_plugin_rss_radar": {"label": "RSS 订阅雷达", "category": "efficiency", "icon": "📡"},
     "astrbot_plugin_translator": {"label": "多语种翻译", "category": "efficiency", "icon": "🌐"},
     "astrbot_plugin_qa": {"label": "自定义问答", "category": "efficiency", "icon": "💬"},
     "astrbot_plugin_command_guide": {"label": "指令大全", "category": "efficiency", "icon": "📖"},
@@ -45,8 +46,10 @@ ECOSYSTEM_META: dict[str, dict[str, str]] = {
     "astrbot_plugin_remote_task": {"label": "远程任务助手", "category": "ops", "icon": "🚀"},
     "astrbot_plugin_status_sync": {"label": "多机状态同步", "category": "ops", "icon": "🖥️"},
     "astrbot_plugin_github_monitor": {"label": "GitHub 监控", "category": "ops", "icon": "🐙"},
+    "astrbot_plugin_url_watchdog": {"label": "站点存活监控", "category": "ops", "icon": "🩺"},
     "astrbot_plugin_sendmail": {"label": "邮件发送助手", "category": "ops", "icon": "📧"},
     "astrbot_plugin_group_games": {"label": "群聊小游戏", "category": "fun", "icon": "🎮"},
+    "astrbot_plugin_group_vote": {"label": "投票报名抽奖", "category": "fun", "icon": "🗳️"},
     "astrbot_plugin_fortune": {"label": "每日运势占卜", "category": "fun", "icon": "🔮"},
     "astrbot_plugin_music_custom": {"label": "多源点歌", "category": "fun", "icon": "🎵"},
     "astrbot_plugin_gay": {"label": "浓度检测娱乐", "category": "fun", "icon": "🌈"},
@@ -397,6 +400,7 @@ class PluginRegistry:
             rt = await self.call_action("astrbot_plugin_remote_task", "list_tasks", {"limit": 10})
             ss = await self.call_action("astrbot_plugin_status_sync", "get_machines_status", {})
             gh = await self.call_action("astrbot_plugin_github_monitor", "list_repos", {})
+            wd = await self.call_action("astrbot_plugin_url_watchdog", "get_overview", {})
             sm = await self.call_action("astrbot_plugin_sendmail", "get_history", {"limit": 10})
             ca = await self.call_action("astrbot_plugin_context_analyzer", "get_health_summary", {})
             return {
@@ -404,6 +408,7 @@ class PluginRegistry:
                 "remote_task": rt.get("data", {}) if rt.get("ok") else {},
                 "status_sync": ss.get("data", {}) if ss.get("ok") else {},
                 "github_monitor": gh.get("data", {}) if gh.get("ok") else {},
+                "url_watchdog": wd.get("data", {}) if wd.get("ok") else {},
                 "sendmail": sm.get("data", {}) if sm.get("ok") else {},
                 "context_analyzer": ca.get("data", {}) if ca.get("ok") else {},
             }
@@ -413,6 +418,8 @@ class PluginRegistry:
             tr = await self.call_action("astrbot_plugin_translator", "get_stats", {})
             mc = await self.call_action("astrbot_plugin_music_custom", "get_stats", {})
             gy = await self.call_action("astrbot_plugin_gay", "get_ranking", {})
+            rr = await self.call_action("astrbot_plugin_rss_radar", "list_feeds", {})
+            gv = await self.call_action("astrbot_plugin_group_vote", "get_overview", {})
             cg = await self.call_action("astrbot_plugin_command_guide", "list_all_commands", {})
             return {
                 "panel": "tools",
@@ -420,6 +427,8 @@ class PluginRegistry:
                 "translator": tr.get("data", {}) if tr.get("ok") else {},
                 "music_custom": mc.get("data", {}) if mc.get("ok") else {},
                 "gay": gy.get("data", {}) if gy.get("ok") else {},
+                "rss_radar": rr.get("data", {}) if rr.get("ok") else {},
+                "group_vote": gv.get("data", {}) if gv.get("ok") else {},
                 "commands": cg.get("data", {}) if cg.get("ok") else {},
             }
 

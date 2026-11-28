@@ -1335,7 +1335,7 @@ pre.json-box {
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
                 <span>自动化联动管线</span>
               </div>
-              <div class="card-desc">内置 10 条跨插件联动规则 + 自定义触发管线，开关实时生效</div>
+              <div class="card-desc">内置 13 条跨插件联动规则 + 自定义触发管线，开关实时生效</div>
             </div>
             <div class="filter-row">
               <button class="btn btn-sm" onclick="emitTestEvent()">发送测试事件</button>
@@ -1501,7 +1501,7 @@ let CURRENT_THEME = localStorage.getItem('astrbot_hub_theme') || 'light';
 
 const ROUTE_META = {
   dashboard: { title: '总览', sub: 'AstrBot 插件生态中枢 · 实时运行状态' },
-  rules:     { title: '联动管线', sub: '内置 10 条跨插件联动规则与自定义工作流' },
+  rules:     { title: '联动管线', sub: '内置 13 条跨插件联动规则与自定义工作流' },
   events:    { title: '事件日志', sub: '跨插件事件总线实时流与执行耗时' },
   data:      { title: '聚合数据', sub: '记忆摘要、备忘提醒、防扰安全与统一积分榜' },
   config:    { title: '插件配置', sub: '自动读取 _conf_schema.json · 在线热更新' },
@@ -1955,19 +1955,19 @@ function renderTopology(ov) {
     _placeArc(eff, CX, CY, 445, 200, 136, 224, pos, groups.efficiency.color);
   } else {
     const outerN = Math.ceil(eff.length * 0.62);
-    _placeArc(eff.slice(0, outerN), CX, CY, 480, 212, 136, 224, pos, groups.efficiency.color);
-    _placeArc(eff.slice(outerN), CX, CY, 290, 152, 146, 214, pos, groups.efficiency.color);
+    _placeArc(eff.slice(0, outerN), CX, CY, 495, 222, 130, 230, pos, groups.efficiency.color);
+    _placeArc(eff.slice(outerN), CX, CY, 292, 152, 146, 214, pos, groups.efficiency.color);
   }
-  _placeArc(groups.guard.items, CX, CY, 250, 196, 240, 300, pos, groups.guard.color);
+  _placeArc(groups.guard.items, CX, CY, 250, 198, 240, 300, pos, groups.guard.color);
   const ops = groups.ops.items;
   if (ops.length <= 5) {
     _placeArc(ops, CX, CY, 468, 204, -46, 46, pos, groups.ops.color);
   } else {
-    const outerN = Math.ceil(ops.length * 0.62);
-    _placeArc(ops.slice(0, outerN), CX, CY, 485, 212, -46, 46, pos, groups.ops.color);
-    _placeArc(ops.slice(outerN), CX, CY, 295, 152, -34, 34, pos, groups.ops.color);
+    const outerN = Math.ceil(ops.length * 0.65);
+    _placeArc(ops.slice(0, outerN), CX, CY, 490, 216, -46, 46, pos, groups.ops.color);
+    _placeArc(ops.slice(outerN), CX, CY, 292, 140, -34, 34, pos, groups.ops.color);
   }
-  _placeArc(groups.fun.items, CX, CY, 330, 198, 56, 124, pos, groups.fun.color);
+  _placeArc(groups.fun.items, CX, CY, 355, 204, 52, 128, pos, groups.fun.color);
 
   const adj = {};
   const edgeMap = new Map();

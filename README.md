@@ -49,6 +49,11 @@ python test_hub.py
 
 ## 更新记录
 
+### v1.3.0
+- 生态扩容至 **24 个自研插件**：`ECOSYSTEM_META` 与拓扑视图原生接入 `astrbot_plugin_group_vote`（投票报名抽奖）、`astrbot_plugin_rss_radar`（RSS 订阅雷达）与 `astrbot_plugin_url_watchdog`（站点存活与 SSL 监控）
+- 内置联动管线升级至 **13 条**：新增投票/抽奖归档与积分奖励（`vote_result_to_digest_and_points`）、RSS 资讯精华归档（`rss_radar_to_digest`）与站点宕机/SSL 临期运维联动（`url_watchdog_ops_bridge`，直连 `chat_digest` + `context_analyzer` + `sendmail`）
+- 聚合数据视图同步展示 `url_watchdog`、`rss_radar` 与 `group_vote` 运行概览，并优化 24 节点双弧辐射拓扑间距实现零重叠
+
 ### v1.2.0
 - 界面全面复刻 SnowLuma 控制台设计体系：采用 OKLCH 极简云白浅色 + 深空暗色双模配色（右上角内置「跟随系统 / 浅色 / 深色」三段主题胶囊切换），默认清爽浅色云白 + 天空蓝主色
 - 全新应用壳层与信息架构：左侧 64px 可折叠 / 248px 悬停展开图标侧栏（支持底部「钉住侧栏」持久化）+ 64px 吸顶半透明磨砂顶栏（动态路由标题 + 实时脉冲连接状态与每秒运行计时）

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""AstrBot 插件生态中枢事件总线、10 条内置自动化联动管线、自定义规则与生态统一积分账本。"""
+"""AstrBot 插件生态中枢事件总线、13 条内置自动化联动管线、自定义规则与生态统一积分账本。"""
 
 from __future__ import annotations
 
@@ -158,6 +158,36 @@ BUILTIN_RULES: list[dict[str, Any]] = [
         "targets": ["astrbot_plugin_chat_digest"],
         "events": ["qa.added", "translator.translated"],
         "description": "新增自定义问答或长文翻译（>= 60 字）自动归档为群记忆精华条目",
+        "default_enabled": True,
+    },
+    {
+        "id": "vote_result_to_digest_and_points",
+        "name": "投票结单与抽奖中奖归档及积分激励",
+        "category": "fun",
+        "sources": ["astrbot_plugin_group_vote"],
+        "targets": ["astrbot_plugin_chat_digest", "astrbot_plugin_group_stats", "astrbot_plugin_hub"],
+        "events": ["group_vote.closed", "group_vote.lottery_drawn"],
+        "description": "群投票结单或公平抽奖开奖后自动归档至群记忆精华，并为中奖群友发放生态统一积分",
+        "default_enabled": True,
+    },
+    {
+        "id": "rss_radar_to_digest",
+        "name": "RSS 订阅雷达高价值资讯归档",
+        "category": "efficiency",
+        "sources": ["astrbot_plugin_rss_radar"],
+        "targets": ["astrbot_plugin_chat_digest"],
+        "events": ["rss_radar.matched_entry"],
+        "description": "RSS 订阅雷达命中推送新条目后自动归档至群聊记忆精华，支持全文检索回顾",
+        "default_enabled": True,
+    },
+    {
+        "id": "url_watchdog_ops_bridge",
+        "name": "站点存活与 SSL 证书监控运维联动",
+        "category": "ops",
+        "sources": ["astrbot_plugin_url_watchdog"],
+        "targets": ["astrbot_plugin_chat_digest", "astrbot_plugin_sendmail", "astrbot_plugin_context_analyzer"],
+        "events": ["url_watchdog.down", "url_watchdog.ssl_expiring", "url_watchdog.recovered"],
+        "description": "站点宕机、SSL 临期或恢复时自动归档记忆与审计日志，宕机/临期且配置运维邮箱时同步发信告警",
         "default_enabled": True,
     },
 ]
@@ -709,7 +739,84 @@ class HubEventBus:
                                 {"umo": umo, "text": f"[翻译摘录] {out_txt[:220]}", "added_by": src, "tags": ["翻译"]},
                             )
 
-            # 11. 自定义联动规则匹配
+            # 11. 投票结单 / 公平抽奖 -> 群记忆精华归档 & 生态积分奖励
+            if ev in ("group_vote.closed", "group_vote.lottery_drawn") and self.is_rule_enabled("vote_result_to_digest_and_points"):
+                umo = str(p.get("umo", "")).strip()
+                summary = str(p.get("summary", "")).strip()
+                if umo and summary and self.registry.has_live_plugin("astrbot_plugin_chat_digest"):
+                    tag = "群投票" if ev == "group_vote.closed" else "群抽奖"
+                    await self._call_target(
+                        record,
+                        "vote_result_to_digest_and_points",
+                        "astrbot_plugin_chat_digest",
+                        "add_highlight",
+                        {"umo": umo, "text": f"[{tag}] {summary[:260]}", "added_by": src, "tags": [tag]},
+                    )
+                if ev == "group_vote.lottery_drawn":
+                    gid = str(p.get("group_id", "")).strip()
+                    scope = gid or umo or "global"
+                    for w in (p.get("winners") or [])[:10]:
+                        uid = str(w.get("user_id", "")).strip()
+                        nick = str(w.get("name", "") or uid)
+                        if not uid:
+                            continue
+                        self.add_eco_points(scope, uid, nick, 5, src, f"抽奖中奖:{p.get('prize', '')}")
+                        record["dispatched"].append({"rule": "vote_result_to_digest_and_points", "target": "astrbot_plugin_hub", "action": "add_eco_points", "ok": True, "ms": 0, "error": ""})
+                        self._record_rule_hit("vote_result_to_digest_and_points", True)
+                        if gid and self.registry.has_live_plugin("astrbot_plugin_group_stats"):
+                            await self._call_target(
+                                record,
+                                "vote_result_to_digest_and_points",
+                                "astrbot_plugin_group_stats",
+                                "add_points",
+                                {"group_id": gid, "user_id": uid, "nickname": nick, "delta": 5},
+                            )
+
+            # 12. RSS 订阅雷达命中 -> 群记忆精华归档
+            if ev == "rss_radar.matched_entry" and self.is_rule_enabled("rss_radar_to_digest"):
+                umo = str(p.get("umo", "")).strip()
+                summary = str(p.get("summary", "") or p.get("title", "")).strip()
+                if umo and summary and self.registry.has_live_plugin("astrbot_plugin_chat_digest"):
+                    await self._call_target(
+                        record,
+                        "rss_radar_to_digest",
+                        "astrbot_plugin_chat_digest",
+                        "add_highlight",
+                        {"umo": umo, "text": f"[RSS] {summary[:260]}", "added_by": src, "tags": ["RSS订阅"]},
+                    )
+
+            # 13. 站点存活与 SSL 证书监控 -> 记忆归档 / 审计日志 / 邮件告警
+            if ev in ("url_watchdog.down", "url_watchdog.ssl_expiring", "url_watchdog.recovered") and self.is_rule_enabled("url_watchdog_ops_bridge"):
+                target_umo = str(cfg.get("ops_archive_umo", "") or p.get("umo", "")).strip()
+                summary = str(p.get("summary", "") or ev).strip()
+                if target_umo and summary and self.registry.has_live_plugin("astrbot_plugin_chat_digest"):
+                    await self._call_target(
+                        record,
+                        "url_watchdog_ops_bridge",
+                        "astrbot_plugin_chat_digest",
+                        "add_highlight",
+                        {"umo": target_umo, "text": f"[站点监控/{ev}] {summary[:240]}", "added_by": src, "tags": ["站点监控"]},
+                    )
+                if self.registry.has_live_plugin("astrbot_plugin_context_analyzer"):
+                    await self._call_target(
+                        record,
+                        "url_watchdog_ops_bridge",
+                        "astrbot_plugin_context_analyzer",
+                        "record_external_event",
+                        {"event_type": ev, "plugin": src, "details": p},
+                    )
+                if ev in ("url_watchdog.down", "url_watchdog.ssl_expiring"):
+                    alert_to = str(cfg.get("ops_alert_email", "") or "").strip()
+                    if alert_to and self.registry.has_live_plugin("astrbot_plugin_sendmail"):
+                        await self._call_target(
+                            record,
+                            "url_watchdog_ops_bridge",
+                            "astrbot_plugin_sendmail",
+                            "send_mail",
+                            {"to": alert_to, "subject": f"[AstrBot 站点监控告警] {p.get('name', ev)}", "body": summary},
+                        )
+
+            # 14. 自定义联动规则匹配
             for cr in list(self._rule_state.get("custom", [])):
                 rid = str(cr.get("id", ""))
                 if not cr.get("enabled", True):
