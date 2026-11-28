@@ -17,7 +17,8 @@
   "web_token": {
     "description": "Web 管理面板管理员访问令牌/密码（留空时首次启动自动生成随机 32 位令牌并保存在 data/hub_token.txt）",
     "type": "string",
-    "default": ""
+    "default": "",
+    "secret": true
   },
   "require_auth_on_localhost": {
     "description": "本机 127.0.0.1 访问是否也强制要求 Token 登录（默认关闭，仅外网/局域网监听时强制）",

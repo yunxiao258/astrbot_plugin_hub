@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """astrbot_plugin_hub 单元测试：事件总线、10 条联动管线、配置脱敏热更新、端口 Web 面板与鉴权。"""
 
 import asyncio
@@ -14,8 +13,8 @@ import aiohttp
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from astrbot_plugin_hub.bus import HUB_BUS_KEY  # noqa: E402
-from astrbot_plugin_hub.main import PluginHubStar  # noqa: E402
+from astrbot_plugin_hub.bus import HUB_BUS_KEY
+from astrbot_plugin_hub.main import PluginHubStar
 
 
 class _MockPartner:
@@ -25,10 +24,19 @@ class _MockPartner:
         self.name = name
         self._actions = actions
         self.calls: list[tuple[str, dict]] = []
-        self.config: dict = {"enabled": True, "api_token": "real_secret_xyz", "limit": 10}
+        self.config: dict = {
+            "enabled": True,
+            "api_token": "real_secret_xyz",
+            "limit": 10,
+        }
 
     def hub_status(self) -> dict:
-        return {"version": "1.2.0", "status": "online", "metrics": {"调用数": len(self.calls)}, "actions": list(self._actions)}
+        return {
+            "version": "1.2.0",
+            "status": "online",
+            "metrics": {"调用数": len(self.calls)},
+            "actions": list(self._actions),
+        }
 
     async def hub_action(self, action: str, params: dict | None = None) -> dict:
         self.calls.append((action, dict(params or {})))
@@ -38,7 +46,13 @@ class _MockPartner:
 
 
 class _FakeEvent:
-    def __init__(self, text: str, umo: str = "onebot:GroupMessage:1001", uid: str = "100", admin: bool = False) -> None:
+    def __init__(
+        self,
+        text: str,
+        umo: str = "onebot:GroupMessage:1001",
+        uid: str = "100",
+        admin: bool = False,
+    ) -> None:
         self.message_str = text
         self.unified_msg_origin = umo
         self._uid = uid
@@ -69,14 +83,24 @@ class TestPluginHub(unittest.TestCase):
         # 构造一个带 schema 的模拟插件目录供在线配置编辑器测试
         sample_dir = os.path.join(self.plugins_dir, "astrbot_plugin_memo")
         os.makedirs(sample_dir, exist_ok=True)
-        with open(os.path.join(sample_dir, "metadata.yaml"), "w", encoding="utf-8") as f:
-            f.write("name: astrbot_plugin_memo\nversion: 1.2.0\nauthor: 云晓\ndesc: 备忘测试\n")
-        with open(os.path.join(sample_dir, "_conf_schema.json"), "w", encoding="utf-8") as f:
+        with open(
+            os.path.join(sample_dir, "metadata.yaml"), "w", encoding="utf-8"
+        ) as f:
+            f.write(
+                "name: astrbot_plugin_memo\nversion: 1.2.0\nauthor: 云晓\ndesc: 备忘测试\n"
+            )
+        with open(
+            os.path.join(sample_dir, "_conf_schema.json"), "w", encoding="utf-8"
+        ) as f:
             json.dump(
                 {
                     "enabled": {"type": "bool", "default": True, "description": "开关"},
                     "limit": {"type": "int", "default": 10, "description": "上限"},
-                    "api_token": {"type": "string", "default": "", "description": "令牌"},
+                    "api_token": {
+                        "type": "string",
+                        "default": "",
+                        "description": "令牌",
+                    },
                 },
                 f,
                 ensure_ascii=False,
@@ -105,15 +129,36 @@ class TestPluginHub(unittest.TestCase):
 
         # 注入各模拟合作插件
         self.partners = {
-            "astrbot_plugin_chat_digest": _MockPartner("astrbot_plugin_chat_digest", ["add_highlight", "add_todo", "get_overview"]),
-            "astrbot_plugin_memo": _MockPartner("astrbot_plugin_memo", ["add_memo", "list_data"]),
-            "astrbot_plugin_sendmail": _MockPartner("astrbot_plugin_sendmail", ["send_mail", "get_history"]),
-            "astrbot_plugin_anti_flood": _MockPartner("astrbot_plugin_anti_flood", ["get_bot_ids", "mark_bot"]),
-            "astrbot_plugin_group_stats": _MockPartner("astrbot_plugin_group_stats", ["add_ignored_bot", "add_points", "get_daily_summary"]),
-            "astrbot_plugin_smart_silence": _MockPartner("astrbot_plugin_smart_silence", ["sync_bot_ids", "get_stats"]),
-            "astrbot_plugin_ignore_at": _MockPartner("astrbot_plugin_ignore_at", ["sync_bot_ids", "get_stats"]),
-            "astrbot_plugin_context_analyzer": _MockPartner("astrbot_plugin_context_analyzer", ["record_external_event", "get_health_summary"]),
-            "astrbot_plugin_music_custom": _MockPartner("astrbot_plugin_music_custom", ["grant_bonus_quota", "get_stats"]),
+            "astrbot_plugin_chat_digest": _MockPartner(
+                "astrbot_plugin_chat_digest",
+                ["add_highlight", "add_todo", "get_overview"],
+            ),
+            "astrbot_plugin_memo": _MockPartner(
+                "astrbot_plugin_memo", ["add_memo", "list_data"]
+            ),
+            "astrbot_plugin_sendmail": _MockPartner(
+                "astrbot_plugin_sendmail", ["send_mail", "get_history"]
+            ),
+            "astrbot_plugin_anti_flood": _MockPartner(
+                "astrbot_plugin_anti_flood", ["get_bot_ids", "mark_bot"]
+            ),
+            "astrbot_plugin_group_stats": _MockPartner(
+                "astrbot_plugin_group_stats",
+                ["add_ignored_bot", "add_points", "get_daily_summary"],
+            ),
+            "astrbot_plugin_smart_silence": _MockPartner(
+                "astrbot_plugin_smart_silence", ["sync_bot_ids", "get_stats"]
+            ),
+            "astrbot_plugin_ignore_at": _MockPartner(
+                "astrbot_plugin_ignore_at", ["sync_bot_ids", "get_stats"]
+            ),
+            "astrbot_plugin_context_analyzer": _MockPartner(
+                "astrbot_plugin_context_analyzer",
+                ["record_external_event", "get_health_summary"],
+            ),
+            "astrbot_plugin_music_custom": _MockPartner(
+                "astrbot_plugin_music_custom", ["grant_bonus_quota", "get_stats"]
+            ),
         }
         for name, inst in self.partners.items():
             self.hub.registry.register_local_instance(name, inst)
@@ -124,7 +169,9 @@ class TestPluginHub(unittest.TestCase):
 
     def test_schema_covers_all_config_keys(self) -> None:
         plugin_dir = os.path.dirname(os.path.abspath(__file__))
-        with open(os.path.join(plugin_dir, "_conf_schema.json"), encoding="utf-8-sig") as f:
+        with open(
+            os.path.join(plugin_dir, "_conf_schema.json"), encoding="utf-8-sig"
+        ) as f:
             schema = json.load(f)
         with open(os.path.join(plugin_dir, "main.py"), encoding="utf-8-sig") as f:
             main_src = f.read()
@@ -138,79 +185,194 @@ class TestPluginHub(unittest.TestCase):
     def test_all_10_builtin_linkage_pipelines_and_custom_rule(self) -> None:
         async def _run():
             # 1. digest_todo_to_memo
-            await self.hub.bus.emit_async("astrbot_plugin_chat_digest", "digest.todo_added", {"umo": "g:1", "title": "提交代码", "assignee": "云晓"})
-            self.assertEqual(self.partners["astrbot_plugin_memo"].calls[-1][0], "add_memo")
+            await self.hub.bus.emit_async(
+                "astrbot_plugin_chat_digest",
+                "digest.todo_added",
+                {"umo": "g:1", "title": "提交代码", "assignee": "云晓"},
+            )
+            self.assertEqual(
+                self.partners["astrbot_plugin_memo"].calls[-1][0], "add_memo"
+            )
 
             # 2. digest_email_copy
-            await self.hub.bus.emit_async("astrbot_plugin_chat_digest", "digest.created", {"umo": "g:1", "date": "2026-11-21", "summary": "日报", "message_count": 12})
-            self.assertEqual(self.partners["astrbot_plugin_sendmail"].calls[-1][0], "send_mail")
+            await self.hub.bus.emit_async(
+                "astrbot_plugin_chat_digest",
+                "digest.created",
+                {
+                    "umo": "g:1",
+                    "date": "2026-11-21",
+                    "summary": "日报",
+                    "message_count": 12,
+                },
+            )
+            self.assertEqual(
+                self.partners["astrbot_plugin_sendmail"].calls[-1][0], "send_mail"
+            )
 
             # 3. antiflood_share_bots
-            await self.hub.bus.emit_async("astrbot_plugin_anti_flood", "antiflood.bot_detected", {"bot_id": "999888"})
-            self.assertEqual(self.partners["astrbot_plugin_group_stats"].calls[-1][0], "add_ignored_bot")
-            self.assertEqual(self.partners["astrbot_plugin_smart_silence"].calls[-1][0], "sync_bot_ids")
-            self.assertEqual(self.partners["astrbot_plugin_ignore_at"].calls[-1][0], "sync_bot_ids")
+            await self.hub.bus.emit_async(
+                "astrbot_plugin_anti_flood",
+                "antiflood.bot_detected",
+                {"bot_id": "999888"},
+            )
+            self.assertEqual(
+                self.partners["astrbot_plugin_group_stats"].calls[-1][0],
+                "add_ignored_bot",
+            )
+            self.assertEqual(
+                self.partners["astrbot_plugin_smart_silence"].calls[-1][0],
+                "sync_bot_ids",
+            )
+            self.assertEqual(
+                self.partners["astrbot_plugin_ignore_at"].calls[-1][0], "sync_bot_ids"
+            )
 
             # 4. antispam_to_context
-            await self.hub.bus.emit_async("astrbot_plugin_ignore_at", "ignore_at.blocked", {"group_id": "1001", "user_id": "2"})
-            self.assertEqual(self.partners["astrbot_plugin_context_analyzer"].calls[-1][0], "record_external_event")
+            await self.hub.bus.emit_async(
+                "astrbot_plugin_ignore_at",
+                "ignore_at.blocked",
+                {"group_id": "1001", "user_id": "2"},
+            )
+            self.assertEqual(
+                self.partners["astrbot_plugin_context_analyzer"].calls[-1][0],
+                "record_external_event",
+            )
 
             # 5 & 6. ops_alerts_to_digest + ops_alerts_to_mail
-            await self.hub.bus.emit_async("astrbot_plugin_github_monitor", "github_monitor.release_found", {"repo": "yunxiao258/demo", "summary": "发布 v2.0.0"})
-            self.assertEqual(self.partners["astrbot_plugin_chat_digest"].calls[-1][0], "add_highlight")
-            self.assertEqual(self.partners["astrbot_plugin_sendmail"].calls[-1][0], "send_mail")
+            await self.hub.bus.emit_async(
+                "astrbot_plugin_github_monitor",
+                "github_monitor.release_found",
+                {"repo": "yunxiao258/demo", "summary": "发布 v2.0.0"},
+            )
+            self.assertEqual(
+                self.partners["astrbot_plugin_chat_digest"].calls[-1][0],
+                "add_highlight",
+            )
+            self.assertEqual(
+                self.partners["astrbot_plugin_sendmail"].calls[-1][0], "send_mail"
+            )
 
             # 7 & 8. points_economy_bridge + lucky_fortune_music_bonus
-            await self.hub.bus.emit_async("astrbot_plugin_fortune", "fortune.drawn", {"user_id": "u77", "nickname": "欧皇", "score": 95, "group_id": "1001"})
-            self.assertEqual(self.partners["astrbot_plugin_music_custom"].calls[-1][0], "grant_bonus_quota")
-            self.assertEqual(self.partners["astrbot_plugin_group_stats"].calls[-1][0], "add_points")
+            await self.hub.bus.emit_async(
+                "astrbot_plugin_fortune",
+                "fortune.drawn",
+                {"user_id": "u77", "nickname": "欧皇", "score": 95, "group_id": "1001"},
+            )
+            self.assertEqual(
+                self.partners["astrbot_plugin_music_custom"].calls[-1][0],
+                "grant_bonus_quota",
+            )
+            self.assertEqual(
+                self.partners["astrbot_plugin_group_stats"].calls[-1][0], "add_points"
+            )
             lb = self.hub.bus.get_eco_leaderboard()
             self.assertEqual(lb[0]["user_id"], "u77")
             self.assertEqual(lb[0]["total"], 5)
 
             # 9. news_weather_to_digest
-            await self.hub.bus.emit_async("astrbot_plugin_daily_news", "daily_news.pushed", {"umo": "g:1", "summary": "今日科技头条"})
-            self.assertIn("[每日新闻]", self.partners["astrbot_plugin_chat_digest"].calls[-1][1]["text"])
+            await self.hub.bus.emit_async(
+                "astrbot_plugin_daily_news",
+                "daily_news.pushed",
+                {"umo": "g:1", "summary": "今日科技头条"},
+            )
+            self.assertIn(
+                "[每日新闻]",
+                self.partners["astrbot_plugin_chat_digest"].calls[-1][1]["text"],
+            )
 
             # 10. qa_translator_to_digest
-            await self.hub.bus.emit_async("astrbot_plugin_qa", "qa.added", {"umo": "g:1", "question": "端口", "answer": "8686"})
-            self.assertIn("[问答]", self.partners["astrbot_plugin_chat_digest"].calls[-1][1]["text"])
+            await self.hub.bus.emit_async(
+                "astrbot_plugin_qa",
+                "qa.added",
+                {"umo": "g:1", "question": "端口", "answer": "8686"},
+            )
+            self.assertIn(
+                "[问答]",
+                self.partners["astrbot_plugin_chat_digest"].calls[-1][1]["text"],
+            )
 
             # 11. vote_result_to_digest_and_points
             await self.hub.bus.emit_async(
                 "astrbot_plugin_group_vote",
                 "group_vote.lottery_drawn",
-                {"umo": "g:1", "group_id": "1001", "prize": "奶茶", "winners": [{"user_id": "u88", "name": "锦鲤"}], "summary": "抽奖开奖：锦鲤"},
+                {
+                    "umo": "g:1",
+                    "group_id": "1001",
+                    "prize": "奶茶",
+                    "winners": [{"user_id": "u88", "name": "锦鲤"}],
+                    "summary": "抽奖开奖：锦鲤",
+                },
             )
-            self.assertIn("[群抽奖]", self.partners["astrbot_plugin_chat_digest"].calls[-1][1]["text"])
-            self.assertEqual(self.partners["astrbot_plugin_group_stats"].calls[-1][1]["user_id"], "u88")
+            self.assertIn(
+                "[群抽奖]",
+                self.partners["astrbot_plugin_chat_digest"].calls[-1][1]["text"],
+            )
+            self.assertEqual(
+                self.partners["astrbot_plugin_group_stats"].calls[-1][1]["user_id"],
+                "u88",
+            )
 
             # 12. rss_radar_to_digest
             await self.hub.bus.emit_async(
                 "astrbot_plugin_rss_radar",
                 "rss_radar.matched_entry",
-                {"umo": "g:1", "feed_name": "36氪", "title": "AI 大模型新进展", "summary": "[36氪] AI 大模型新进展"},
+                {
+                    "umo": "g:1",
+                    "feed_name": "36氪",
+                    "title": "AI 大模型新进展",
+                    "summary": "[36氪] AI 大模型新进展",
+                },
             )
-            self.assertIn("[RSS]", self.partners["astrbot_plugin_chat_digest"].calls[-1][1]["text"])
+            self.assertIn(
+                "[RSS]",
+                self.partners["astrbot_plugin_chat_digest"].calls[-1][1]["text"],
+            )
 
             # 13. url_watchdog_ops_bridge
             await self.hub.bus.emit_async(
                 "astrbot_plugin_url_watchdog",
                 "url_watchdog.down",
-                {"umo": "g:1", "name": "主站", "target": "https://example.com", "summary": "站点主站宕机"},
+                {
+                    "umo": "g:1",
+                    "name": "主站",
+                    "target": "https://example.com",
+                    "summary": "站点主站宕机",
+                },
             )
-            self.assertIn("[站点监控/url_watchdog.down]", self.partners["astrbot_plugin_chat_digest"].calls[-1][1]["text"])
-            self.assertEqual(self.partners["astrbot_plugin_context_analyzer"].calls[-1][0], "record_external_event")
-            self.assertEqual(self.partners["astrbot_plugin_sendmail"].calls[-1][0], "send_mail")
+            self.assertIn(
+                "[站点监控/url_watchdog.down]",
+                self.partners["astrbot_plugin_chat_digest"].calls[-1][1]["text"],
+            )
+            self.assertEqual(
+                self.partners["astrbot_plugin_context_analyzer"].calls[-1][0],
+                "record_external_event",
+            )
+            self.assertEqual(
+                self.partners["astrbot_plugin_sendmail"].calls[-1][0], "send_mail"
+            )
 
             # 14. 自定义规则
-            cr = self.hub.bus.add_custom_rule("自定义转发", "astrbot_plugin_gay", "gay.tested", "astrbot_plugin_memo", "add_memo", {"umo": "g:1", "content": "记录一次测试"})
-            await self.hub.bus.emit_async("astrbot_plugin_gay", "gay.tested", {"user_id": "u1"})
-            self.assertEqual(self.partners["astrbot_plugin_memo"].calls[-1][1]["content"], "记录一次测试")
+            cr = self.hub.bus.add_custom_rule(
+                "自定义转发",
+                "astrbot_plugin_gay",
+                "gay.tested",
+                "astrbot_plugin_memo",
+                "add_memo",
+                {"umo": "g:1", "content": "记录一次测试"},
+            )
+            await self.hub.bus.emit_async(
+                "astrbot_plugin_gay", "gay.tested", {"user_id": "u1"}
+            )
+            self.assertEqual(
+                self.partners["astrbot_plugin_memo"].calls[-1][1]["content"],
+                "记录一次测试",
+            )
             self.assertTrue(self.hub.bus.delete_custom_rule(cr["id"]))
 
             # 12. 防循环重入保护
-            sk = await self.hub.bus.emit_async("astrbot_plugin_memo", "memo.added", {"_hub_origin": "orig1"})
+            sk = await self.hub.bus.emit_async(
+                "astrbot_plugin_memo", "memo.added", {"_hub_origin": "orig1"}
+            )
             self.assertTrue(sk.get("skipped"))
 
         asyncio.run(_run())
@@ -229,7 +391,9 @@ class TestPluginHub(unittest.TestCase):
         self.assertTrue(res["ok"])
         self.assertEqual(self.partners["astrbot_plugin_memo"].config["limit"], 25)
         self.assertFalse(self.partners["astrbot_plugin_memo"].config["enabled"])
-        self.assertEqual(self.partners["astrbot_plugin_memo"].config["api_token"], "real_secret_xyz")
+        self.assertEqual(
+            self.partners["astrbot_plugin_memo"].config["api_token"], "real_secret_xyz"
+        )
         self.assertTrue(os.path.isfile(res["config_path"]))
 
     def test_web_server_localhost_no_auth_and_forced_auth(self) -> None:
@@ -238,7 +402,9 @@ class TestPluginHub(unittest.TestCase):
             self.assertIs(sys.modules.get(HUB_BUS_KEY), self.hub.bus)
             base = self.hub.web_server.url
 
-            async with aiohttp.ClientSession(cookie_jar=aiohttp.CookieJar(unsafe=True)) as cli:
+            async with aiohttp.ClientSession(
+                cookie_jar=aiohttp.CookieJar(unsafe=True)
+            ) as cli:
                 # 1. 本机免登访问首页与核心 API
                 async with cli.get(f"{base}/") as r:
                     self.assertEqual(r.status, 200)
@@ -251,13 +417,19 @@ class TestPluginHub(unittest.TestCase):
                     self.assertTrue(ov["ok"])
                     self.assertFalse(ov["auth"]["required"])
 
-                async with cli.post(f"{base}/api/rules/digest_todo_to_memo/toggle", json={"enabled": False}) as r:
+                async with cli.post(
+                    f"{base}/api/rules/digest_todo_to_memo/toggle",
+                    json={"enabled": False},
+                ) as r:
                     self.assertEqual(r.status, 200)
                     self.assertFalse((await r.json())["rule"]["enabled"])
 
                 async with cli.post(
                     f"{base}/api/plugins/astrbot_plugin_memo/action",
-                    json={"action": "add_memo", "params": {"umo": "g:1", "content": "来自面板"}},
+                    json={
+                        "action": "add_memo",
+                        "params": {"umo": "g:1", "content": "来自面板"},
+                    },
                 ) as r:
                     self.assertEqual(r.status, 200)
                     self.assertTrue((await r.json())["ok"])
@@ -266,9 +438,13 @@ class TestPluginHub(unittest.TestCase):
                 self.hub.web_server.require_auth_on_localhost = True
                 async with cli.get(f"{base}/api/overview") as r:
                     self.assertEqual(r.status, 401)
-                async with cli.post(f"{base}/api/login", json={"token": "wrong_tok"}) as r:
+                async with cli.post(
+                    f"{base}/api/login", json={"token": "wrong_tok"}
+                ) as r:
                     self.assertEqual(r.status, 401)
-                async with cli.post(f"{base}/api/login", json={"token": self.hub.web_server.token}) as r:
+                async with cli.post(
+                    f"{base}/api/login", json={"token": self.hub.web_server.token}
+                ) as r:
                     self.assertEqual(r.status, 200)
                 async with cli.get(f"{base}/api/overview") as r:
                     self.assertEqual(r.status, 200)
@@ -292,18 +468,30 @@ class TestPluginHub(unittest.TestCase):
 
             # 群聊不泄露 Token，私聊管理员可见（强制鉴权模式下）
             self.hub.web_server.require_auth_on_localhost = True
-            p_grp = await self.hub.hub_command(_FakeEvent("/面板 面板", umo="onebot:GroupMessage:1", uid="999"))
+            p_grp = await self.hub.hub_command(
+                _FakeEvent("/面板 面板", umo="onebot:GroupMessage:1", uid="999")
+            )
             self.assertNotIn(self.hub.web_server.token, p_grp)
-            p_priv = await self.hub.hub_command(_FakeEvent("/中枢 面板", umo="onebot:FriendMessage:999", uid="999"))
+            p_priv = await self.hub.hub_command(
+                _FakeEvent("/中枢 面板", umo="onebot:FriendMessage:999", uid="999")
+            )
             self.assertIn(self.hub.web_server.token, p_priv)
 
             # 非管理员不能开关联动或触发动作
-            deny = await self.hub.hub_command(_FakeEvent("/中枢 联动 关闭 digest_todo_to_memo", admin=False))
+            deny = await self.hub.hub_command(
+                _FakeEvent("/中枢 联动 关闭 digest_todo_to_memo", admin=False)
+            )
             self.assertIn("仅限管理员", deny)
-            ok = await self.hub.hub_command(_FakeEvent("/中枢 联动 关闭 digest_todo_to_memo", admin=True))
+            ok = await self.hub.hub_command(
+                _FakeEvent("/中枢 联动 关闭 digest_todo_to_memo", admin=True)
+            )
             self.assertIn("已关闭", ok)
 
-            trig = await self.hub.hub_command(_FakeEvent('/中枢 触发 memo add_memo {"umo":"g:1","content":"hi"}', admin=True))
+            trig = await self.hub.hub_command(
+                _FakeEvent(
+                    '/中枢 触发 memo add_memo {"umo":"g:1","content":"hi"}', admin=True
+                )
+            )
             self.assertIn("已执行", trig)
 
         asyncio.run(_run())
@@ -318,17 +506,29 @@ class TestPluginHub(unittest.TestCase):
             with self.assertRaises(ValueError):
                 self.hub.registry.save_plugin_config("..\\bad", {})
 
-            async with aiohttp.ClientSession(cookie_jar=aiohttp.CookieJar(unsafe=True)) as cli:
+            async with aiohttp.ClientSession(
+                cookie_jar=aiohttp.CookieJar(unsafe=True)
+            ) as cli:
                 async with cli.get(f"{base}/api/plugins/..%2Fsecret/config") as r:
                     self.assertEqual(r.status, 400)
-                async with cli.post(f"{base}/api/plugins/bad$name/config", json={"enabled": True}) as r:
+                async with cli.post(
+                    f"{base}/api/plugins/bad$name/config", json={"enabled": True}
+                ) as r:
                     self.assertEqual(r.status, 400)
                 # 1b. Non-dict JSON & invalid payload types return 400 (never 500)
-                async with cli.post(f"{base}/api/login", json=["not", "a", "dict"]) as r:
+                async with cli.post(
+                    f"{base}/api/login", json=["not", "a", "dict"]
+                ) as r:
                     self.assertEqual(r.status, 400)
-                async with cli.post(f"{base}/api/events/emit", json={"event_type": "x", "payload": [1, 2, 3]}) as r:
+                async with cli.post(
+                    f"{base}/api/events/emit",
+                    json={"event_type": "x", "payload": [1, 2, 3]},
+                ) as r:
                     self.assertEqual(r.status, 400)
-                async with cli.post(f"{base}/api/plugins/astrbot_plugin_hub/action", json={"action": "list_rules", "params": "bad"}) as r:
+                async with cli.post(
+                    f"{base}/api/plugins/astrbot_plugin_hub/action",
+                    json={"action": "list_rules", "params": "bad"},
+                ) as r:
                     self.assertEqual(r.status, 400)
                 # 2. Dashboard HTML includes strict esc() XSS sanitizer, live uptime ticker, and no-store cache header
                 async with cli.get(f"{base}/") as r:

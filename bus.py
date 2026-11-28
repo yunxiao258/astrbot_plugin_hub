@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """AstrBot 插件生态中枢事件总线、13 条内置自动化联动管线、自定义规则与生态统一积分账本。"""
 
 from __future__ import annotations
@@ -78,7 +77,11 @@ BUILTIN_RULES: list[dict[str, Any]] = [
         "name": "防刷屏 Bot 名单全生态共享",
         "category": "guard",
         "sources": ["astrbot_plugin_anti_flood"],
-        "targets": ["astrbot_plugin_group_stats", "astrbot_plugin_smart_silence", "astrbot_plugin_ignore_at"],
+        "targets": [
+            "astrbot_plugin_group_stats",
+            "astrbot_plugin_smart_silence",
+            "astrbot_plugin_ignore_at",
+        ],
         "events": ["antiflood.bot_detected"],
         "description": "anti_flood 探测或标记新 Bot 后，自动同步至群统计（排除刷屏）、智能静默与忽略互@",
         "default_enabled": True,
@@ -87,9 +90,17 @@ BUILTIN_RULES: list[dict[str, Any]] = [
         "id": "antispam_to_context",
         "name": "防扰拦截事件归档上下文审计",
         "category": "guard",
-        "sources": ["astrbot_plugin_anti_flood", "astrbot_plugin_ignore_at", "astrbot_plugin_smart_silence"],
+        "sources": [
+            "astrbot_plugin_anti_flood",
+            "astrbot_plugin_ignore_at",
+            "astrbot_plugin_smart_silence",
+        ],
         "targets": ["astrbot_plugin_context_analyzer"],
-        "events": ["antiflood.flood_blocked", "ignore_at.blocked", "smart_silence.silenced"],
+        "events": [
+            "antiflood.flood_blocked",
+            "ignore_at.blocked",
+            "smart_silence.silenced",
+        ],
         "description": "将防刷屏、忽略互@与智能静默拦截事件统一上报至 context_analyzer 事件审计日志",
         "default_enabled": True,
     },
@@ -97,7 +108,11 @@ BUILTIN_RULES: list[dict[str, Any]] = [
         "id": "ops_alerts_to_digest",
         "name": "运维关键事件自动归档群记忆",
         "category": "ops",
-        "sources": ["astrbot_plugin_remote_task", "astrbot_plugin_status_sync", "astrbot_plugin_github_monitor"],
+        "sources": [
+            "astrbot_plugin_remote_task",
+            "astrbot_plugin_status_sync",
+            "astrbot_plugin_github_monitor",
+        ],
         "targets": ["astrbot_plugin_chat_digest"],
         "events": [
             "remote_task.completed",
@@ -114,9 +129,18 @@ BUILTIN_RULES: list[dict[str, Any]] = [
         "id": "ops_alerts_to_mail",
         "name": "运维告警自动发送邮件通知",
         "category": "ops",
-        "sources": ["astrbot_plugin_remote_task", "astrbot_plugin_status_sync", "astrbot_plugin_github_monitor"],
+        "sources": [
+            "astrbot_plugin_remote_task",
+            "astrbot_plugin_status_sync",
+            "astrbot_plugin_github_monitor",
+        ],
         "targets": ["astrbot_plugin_sendmail"],
-        "events": ["remote_task.failed", "status_sync.machine_offline", "github_monitor.release_found", "github_monitor.star_alert"],
+        "events": [
+            "remote_task.failed",
+            "status_sync.machine_offline",
+            "github_monitor.release_found",
+            "github_monitor.star_alert",
+        ],
         "description": "触发运维高优先级告警时，若已配置 ops_alert_email 则自动通过 sendmail 发送邮件提醒",
         "default_enabled": True,
     },
@@ -124,9 +148,19 @@ BUILTIN_RULES: list[dict[str, Any]] = [
         "id": "points_economy_bridge",
         "name": "全生态统一积分账本互通",
         "category": "fun",
-        "sources": ["astrbot_plugin_group_games", "astrbot_plugin_group_stats", "astrbot_plugin_fortune", "astrbot_plugin_gay"],
+        "sources": [
+            "astrbot_plugin_group_games",
+            "astrbot_plugin_group_stats",
+            "astrbot_plugin_fortune",
+            "astrbot_plugin_gay",
+        ],
         "targets": ["astrbot_plugin_group_stats", "astrbot_plugin_hub"],
-        "events": ["group_games.points_awarded", "group_stats.points_changed", "fortune.drawn", "gay.tested"],
+        "events": [
+            "group_games.points_awarded",
+            "group_stats.points_changed",
+            "fortune.drawn",
+            "gay.tested",
+        ],
         "description": "汇总小游戏胜利、群活跃发言、每日运势与互动积分至中枢统一生态积分榜，并同步至群统计",
         "default_enabled": True,
     },
@@ -165,7 +199,11 @@ BUILTIN_RULES: list[dict[str, Any]] = [
         "name": "投票结单与抽奖中奖归档及积分激励",
         "category": "fun",
         "sources": ["astrbot_plugin_group_vote"],
-        "targets": ["astrbot_plugin_chat_digest", "astrbot_plugin_group_stats", "astrbot_plugin_hub"],
+        "targets": [
+            "astrbot_plugin_chat_digest",
+            "astrbot_plugin_group_stats",
+            "astrbot_plugin_hub",
+        ],
         "events": ["group_vote.closed", "group_vote.lottery_drawn"],
         "description": "群投票结单或公平抽奖开奖后自动归档至群记忆精华，并为中奖群友发放生态统一积分",
         "default_enabled": True,
@@ -185,8 +223,16 @@ BUILTIN_RULES: list[dict[str, Any]] = [
         "name": "站点存活与 SSL 证书监控运维联动",
         "category": "ops",
         "sources": ["astrbot_plugin_url_watchdog"],
-        "targets": ["astrbot_plugin_chat_digest", "astrbot_plugin_sendmail", "astrbot_plugin_context_analyzer"],
-        "events": ["url_watchdog.down", "url_watchdog.ssl_expiring", "url_watchdog.recovered"],
+        "targets": [
+            "astrbot_plugin_chat_digest",
+            "astrbot_plugin_sendmail",
+            "astrbot_plugin_context_analyzer",
+        ],
+        "events": [
+            "url_watchdog.down",
+            "url_watchdog.ssl_expiring",
+            "url_watchdog.recovered",
+        ],
         "description": "站点宕机、SSL 临期或恢复时自动归档记忆与审计日志，宕机/临期且配置运维邮箱时同步发信告警",
         "default_enabled": True,
     },
@@ -244,7 +290,9 @@ class HubEventBus:
 
     def reload(self) -> None:
         self._events = safe_read_json(self.events_path, [])
-        rs = safe_read_json(self.rules_path, {"overrides": {}, "custom": [], "stats": {}})
+        rs = safe_read_json(
+            self.rules_path, {"overrides": {}, "custom": [], "stats": {}}
+        )
         rs.setdefault("overrides", {})
         rs.setdefault("custom", [])
         rs.setdefault("stats", {})
@@ -252,7 +300,9 @@ class HubEventBus:
         self._eco_points = safe_read_json(self.points_path, {})
 
     def save_all(self) -> None:
-        atomic_write_json(self.events_path, self._events[-self.max_history :], do_fsync=True)
+        atomic_write_json(
+            self.events_path, self._events[-self.max_history :], do_fsync=True
+        )
         atomic_write_json(self.rules_path, self._rule_state, do_fsync=True)
         atomic_write_json(self.points_path, self._eco_points, do_fsync=True)
         self._events_dirty = False
@@ -281,27 +331,35 @@ class HubEventBus:
         out: list[dict[str, Any]] = []
         for r in BUILTIN_RULES:
             rid = r["id"]
-            enabled = bool(overrides[rid]) if rid in overrides else bool(r.get("default_enabled", True))
+            enabled = (
+                bool(overrides[rid])
+                if rid in overrides
+                else bool(r.get("default_enabled", True))
+            )
             st = stats.get(rid, {})
-            out.append({
-                **r,
-                "builtin": True,
-                "enabled": enabled,
-                "triggered_count": int(st.get("count", 0)),
-                "last_triggered": str(st.get("last_at", "")),
-                "last_status": str(st.get("last_status", "")),
-            })
+            out.append(
+                {
+                    **r,
+                    "builtin": True,
+                    "enabled": enabled,
+                    "triggered_count": int(st.get("count", 0)),
+                    "last_triggered": str(st.get("last_at", "")),
+                    "last_status": str(st.get("last_status", "")),
+                }
+            )
         for cr in self._rule_state.get("custom", []):
             rid = str(cr.get("id", ""))
             st = stats.get(rid, {})
-            out.append({
-                **cr,
-                "builtin": False,
-                "enabled": bool(cr.get("enabled", True)),
-                "triggered_count": int(st.get("count", 0)),
-                "last_triggered": str(st.get("last_at", "")),
-                "last_status": str(st.get("last_status", "")),
-            })
+            out.append(
+                {
+                    **cr,
+                    "builtin": False,
+                    "enabled": bool(cr.get("enabled", True)),
+                    "triggered_count": int(st.get("count", 0)),
+                    "last_triggered": str(st.get("last_at", "")),
+                    "last_status": str(st.get("last_status", "")),
+                }
+            )
         return out
 
     def toggle_rule(self, rule_id: str, enabled: bool) -> dict[str, Any] | None:
@@ -337,7 +395,10 @@ class HubEventBus:
             "target_plugin": target_plugin.strip(),
             "target_action": target_action.strip(),
             "payload_template": dict(payload_template or {}),
-            "description": (description or f"监听 {event_type} 自动触发 {target_plugin}.{target_action}").strip()[:200],
+            "description": (
+                description
+                or f"监听 {event_type} 自动触发 {target_plugin}.{target_action}"
+            ).strip()[:200],
             "enabled": True,
             "created_at": _now_iso(),
         }
@@ -356,7 +417,9 @@ class HubEventBus:
 
     def _record_rule_hit(self, rule_id: str, ok: bool) -> None:
         stats = self._rule_state.setdefault("stats", {})
-        entry = stats.setdefault(rule_id, {"count": 0, "last_at": "", "last_status": ""})
+        entry = stats.setdefault(
+            rule_id, {"count": 0, "last_at": "", "last_status": ""}
+        )
         entry["count"] = int(entry.get("count", 0)) + 1
         entry["last_at"] = _now_iso()
         entry["last_status"] = "ok" if ok else "error"
@@ -380,7 +443,13 @@ class HubEventBus:
         bucket = self._eco_points.setdefault(sc, {})
         rec = bucket.setdefault(
             uid,
-            {"user_id": uid, "nickname": nickname or uid, "total": 0, "sources": {}, "updated_at": ""},
+            {
+                "user_id": uid,
+                "nickname": nickname or uid,
+                "total": 0,
+                "sources": {},
+                "updated_at": "",
+            },
         )
         if nickname:
             rec["nickname"] = str(nickname)[:40]
@@ -394,7 +463,9 @@ class HubEventBus:
         self._flush_points(force=False)
         return dict(rec)
 
-    def get_eco_leaderboard(self, scope: str | None = None, limit: int = 20) -> list[dict[str, Any]]:
+    def get_eco_leaderboard(
+        self, scope: str | None = None, limit: int = 20
+    ) -> list[dict[str, Any]]:
         if scope and scope in self._eco_points:
             items = list(self._eco_points[scope].values())
         else:
@@ -499,12 +570,20 @@ class HubEventBus:
         self._flush_events(force=True)
         self._flush_points(force=True)
 
-    def recent_events(self, limit: int = 50, event_type: str = "", source: str = "") -> list[dict[str, Any]]:
+    def recent_events(
+        self, limit: int = 50, event_type: str = "", source: str = ""
+    ) -> list[dict[str, Any]]:
         items = list(self._events)
         if event_type:
-            items = [e for e in items if event_type.lower() in str(e.get("event_type", "")).lower()]
+            items = [
+                e
+                for e in items
+                if event_type.lower() in str(e.get("event_type", "")).lower()
+            ]
         if source:
-            items = [e for e in items if source.lower() in str(e.get("source", "")).lower()]
+            items = [
+                e for e in items if source.lower() in str(e.get("source", "")).lower()
+            ]
         return list(reversed(items[-max(1, limit) :]))
 
     async def _call_target(
@@ -521,14 +600,16 @@ class HubEventBus:
         res = await self.registry.call_action(plugin, action, safe_params)
         ms = int((time.monotonic() - t0) * 1000)
         ok = bool(res.get("ok"))
-        record["dispatched"].append({
-            "rule": rule_id,
-            "target": plugin,
-            "action": action,
-            "ok": ok,
-            "ms": ms,
-            "error": str(res.get("error", ""))[:160] if not ok else "",
-        })
+        record["dispatched"].append(
+            {
+                "rule": rule_id,
+                "target": plugin,
+                "action": action,
+                "ok": ok,
+                "ms": ms,
+                "error": str(res.get("error", ""))[:160] if not ok else "",
+            }
+        )
         self._record_rule_hit(rule_id, ok)
         return ok
 
@@ -564,18 +645,34 @@ class HubEventBus:
             p = record["payload"]
 
             # 1. chat_digest 待办 -> memo 备忘录
-            if ev == "digest.todo_added" and self.is_rule_enabled("digest_todo_to_memo"):
+            if ev == "digest.todo_added" and self.is_rule_enabled(
+                "digest_todo_to_memo"
+            ):
                 umo = str(p.get("umo", ""))
                 title = str(p.get("title", "")).strip()
                 assignee = str(p.get("assignee", "")).strip()
-                if umo and title and self.registry.has_live_plugin("astrbot_plugin_memo"):
-                    content = f"[群待办] {title}" + (f" (@{assignee})" if assignee else "")
-                    await self._call_target(record, "digest_todo_to_memo", "astrbot_plugin_memo", "add_memo", {"umo": umo, "content": content})
+                if (
+                    umo
+                    and title
+                    and self.registry.has_live_plugin("astrbot_plugin_memo")
+                ):
+                    content = f"[群待办] {title}" + (
+                        f" (@{assignee})" if assignee else ""
+                    )
+                    await self._call_target(
+                        record,
+                        "digest_todo_to_memo",
+                        "astrbot_plugin_memo",
+                        "add_memo",
+                        {"umo": umo, "content": content},
+                    )
 
             # 2. chat_digest 摘要生成 -> sendmail 邮件抄送（仅配置邮箱时触发）
             if ev == "digest.created" and self.is_rule_enabled("digest_email_copy"):
                 email_to = str(cfg.get("digest_copy_email", "") or "").strip()
-                if email_to and self.registry.has_live_plugin("astrbot_plugin_sendmail"):
+                if email_to and self.registry.has_live_plugin(
+                    "astrbot_plugin_sendmail"
+                ):
                     subject = f"[AstrBot 群聊摘要] {p.get('date', '')} ({p.get('message_count', 0)} 条消息)"
                     body = str(p.get("text") or p.get("summary") or "")
                     if body:
@@ -588,7 +685,9 @@ class HubEventBus:
                         )
 
             # 3. anti_flood 新识别/标记 Bot -> 同步至 group_stats / smart_silence / ignore_at
-            if ev == "antiflood.bot_detected" and self.is_rule_enabled("antiflood_share_bots"):
+            if ev == "antiflood.bot_detected" and self.is_rule_enabled(
+                "antiflood_share_bots"
+            ):
                 bot_id = str(p.get("bot_id", "")).strip()
                 if bot_id:
                     for target_plug, act in (
@@ -606,7 +705,11 @@ class HubEventBus:
                             )
 
             # 4. 防扰拦截事件 -> context_analyzer 审计事件日志
-            if ev in ("antiflood.flood_blocked", "ignore_at.blocked", "smart_silence.silenced") and self.is_rule_enabled("antispam_to_context"):
+            if ev in (
+                "antiflood.flood_blocked",
+                "ignore_at.blocked",
+                "smart_silence.silenced",
+            ) and self.is_rule_enabled("antispam_to_context"):
                 if self.registry.has_live_plugin("astrbot_plugin_context_analyzer"):
                     await self._call_target(
                         record,
@@ -625,32 +728,59 @@ class HubEventBus:
                 "github_monitor.release_found",
                 "github_monitor.star_alert",
             ) and self.is_rule_enabled("ops_alerts_to_digest"):
-                target_umo = str(cfg.get("ops_archive_umo", "") or p.get("umo", "")).strip()
+                target_umo = str(
+                    cfg.get("ops_archive_umo", "") or p.get("umo", "")
+                ).strip()
                 summary = str(p.get("summary") or p.get("title") or ev).strip()
-                if target_umo and summary and self.registry.has_live_plugin("astrbot_plugin_chat_digest"):
+                if (
+                    target_umo
+                    and summary
+                    and self.registry.has_live_plugin("astrbot_plugin_chat_digest")
+                ):
                     await self._call_target(
                         record,
                         "ops_alerts_to_digest",
                         "astrbot_plugin_chat_digest",
                         "add_highlight",
-                        {"umo": target_umo, "text": f"[运维/{ev}] {summary}", "added_by": src, "tags": ["运维联动"]},
+                        {
+                            "umo": target_umo,
+                            "text": f"[运维/{ev}] {summary}",
+                            "added_by": src,
+                            "tags": ["运维联动"],
+                        },
                     )
 
             # 6. 运维高优告警 -> sendmail 邮件告警
-            if ev in ("remote_task.failed", "status_sync.machine_offline", "github_monitor.release_found", "github_monitor.star_alert") and self.is_rule_enabled("ops_alerts_to_mail"):
+            if ev in (
+                "remote_task.failed",
+                "status_sync.machine_offline",
+                "github_monitor.release_found",
+                "github_monitor.star_alert",
+            ) and self.is_rule_enabled("ops_alerts_to_mail"):
                 alert_to = str(cfg.get("ops_alert_email", "") or "").strip()
-                if alert_to and self.registry.has_live_plugin("astrbot_plugin_sendmail"):
+                if alert_to and self.registry.has_live_plugin(
+                    "astrbot_plugin_sendmail"
+                ):
                     summary = str(p.get("summary") or p.get("title") or ev)
                     await self._call_target(
                         record,
                         "ops_alerts_to_mail",
                         "astrbot_plugin_sendmail",
                         "send_mail",
-                        {"to": alert_to, "subject": f"[AstrBot 运维告警] {ev}", "body": summary},
+                        {
+                            "to": alert_to,
+                            "subject": f"[AstrBot 运维告警] {ev}",
+                            "body": summary,
+                        },
                     )
 
             # 7. 跨插件统一生态积分互通
-            if ev in ("group_games.points_awarded", "group_stats.points_changed", "fortune.drawn", "gay.tested") and self.is_rule_enabled("points_economy_bridge"):
+            if ev in (
+                "group_games.points_awarded",
+                "group_stats.points_changed",
+                "fortune.drawn",
+                "gay.tested",
+            ) and self.is_rule_enabled("points_economy_bridge"):
                 uid = str(p.get("user_id", "")).strip()
                 nick = str(p.get("nickname", "") or uid)
                 scope = str(p.get("group_id") or p.get("umo") or "global")
@@ -672,49 +802,92 @@ class HubEventBus:
 
                 if uid and delta > 0:
                     self.add_eco_points(scope, uid, nick, delta, src, reason)
-                    record["dispatched"].append({"rule": "points_economy_bridge", "target": "astrbot_plugin_hub", "action": "add_eco_points", "ok": True, "ms": 0, "error": ""})
+                    record["dispatched"].append(
+                        {
+                            "rule": "points_economy_bridge",
+                            "target": "astrbot_plugin_hub",
+                            "action": "add_eco_points",
+                            "ok": True,
+                            "ms": 0,
+                            "error": "",
+                        }
+                    )
                     self._record_rule_hit("points_economy_bridge", True)
                     # 来自游戏/运势/互动的加分同步反哺到 group_stats 积分榜
-                    if src != "astrbot_plugin_group_stats" and p.get("group_id") and self.registry.has_live_plugin("astrbot_plugin_group_stats"):
+                    if (
+                        src != "astrbot_plugin_group_stats"
+                        and p.get("group_id")
+                        and self.registry.has_live_plugin("astrbot_plugin_group_stats")
+                    ):
                         await self._call_target(
                             record,
                             "points_economy_bridge",
                             "astrbot_plugin_group_stats",
                             "add_points",
-                            {"group_id": str(p["group_id"]), "user_id": uid, "nickname": nick, "delta": delta},
+                            {
+                                "group_id": str(p["group_id"]),
+                                "user_id": uid,
+                                "nickname": nick,
+                                "delta": delta,
+                            },
                         )
 
             # 8. 大吉运势 -> music_custom 赠送点歌配额
-            if ev == "fortune.drawn" and self.is_rule_enabled("lucky_fortune_music_bonus"):
+            if ev == "fortune.drawn" and self.is_rule_enabled(
+                "lucky_fortune_music_bonus"
+            ):
                 score = self._int(p.get("score", 0), 0)
                 threshold = self._int(cfg.get("fortune_bonus_threshold", 85), 85)
                 bonus = max(1, self._int(cfg.get("fortune_bonus_quota", 2), 2))
                 uid = str(p.get("user_id", "")).strip()
-                if uid and score >= threshold and self.registry.has_live_plugin("astrbot_plugin_music_custom"):
+                if (
+                    uid
+                    and score >= threshold
+                    and self.registry.has_live_plugin("astrbot_plugin_music_custom")
+                ):
                     await self._call_target(
                         record,
                         "lucky_fortune_music_bonus",
                         "astrbot_plugin_music_custom",
                         "grant_bonus_quota",
-                        {"user_id": uid, "bonus": bonus, "reason": f"大吉运势({score}分)"},
+                        {
+                            "user_id": uid,
+                            "bonus": bonus,
+                            "reason": f"大吉运势({score}分)",
+                        },
                     )
 
             # 9. 新闻 / 天气预警 -> chat_digest 精华归档
-            if ev in ("daily_news.pushed", "weather.pushed", "weather.alert") and self.is_rule_enabled("news_weather_to_digest"):
+            if ev in (
+                "daily_news.pushed",
+                "weather.pushed",
+                "weather.alert",
+            ) and self.is_rule_enabled("news_weather_to_digest"):
                 umo = str(p.get("umo", "")).strip()
                 summary = str(p.get("summary", "")).strip()
-                if umo and summary and self.registry.has_live_plugin("astrbot_plugin_chat_digest"):
+                if (
+                    umo
+                    and summary
+                    and self.registry.has_live_plugin("astrbot_plugin_chat_digest")
+                ):
                     tag = "每日新闻" if ev == "daily_news.pushed" else "天气播报"
                     await self._call_target(
                         record,
                         "news_weather_to_digest",
                         "astrbot_plugin_chat_digest",
                         "add_highlight",
-                        {"umo": umo, "text": f"[{tag}] {summary[:260]}", "added_by": src, "tags": [tag]},
+                        {
+                            "umo": umo,
+                            "text": f"[{tag}] {summary[:260]}",
+                            "added_by": src,
+                            "tags": [tag],
+                        },
                     )
 
             # 10. 问答 / 长文翻译 -> chat_digest 知识沉淀
-            if ev in ("qa.added", "translator.translated") and self.is_rule_enabled("qa_translator_to_digest"):
+            if ev in ("qa.added", "translator.translated") and self.is_rule_enabled(
+                "qa_translator_to_digest"
+            ):
                 umo = str(p.get("umo", "")).strip()
                 if umo and self.registry.has_live_plugin("astrbot_plugin_chat_digest"):
                     if ev == "qa.added":
@@ -726,7 +899,12 @@ class HubEventBus:
                                 "qa_translator_to_digest",
                                 "astrbot_plugin_chat_digest",
                                 "add_highlight",
-                                {"umo": umo, "text": f"[问答] Q: {q} → A: {a[:180]}", "added_by": src, "tags": ["问答库"]},
+                                {
+                                    "umo": umo,
+                                    "text": f"[问答] Q: {q} → A: {a[:180]}",
+                                    "added_by": src,
+                                    "tags": ["问答库"],
+                                },
                             )
                     elif ev == "translator.translated":
                         out_txt = str(p.get("translated", "")).strip()
@@ -736,21 +914,38 @@ class HubEventBus:
                                 "qa_translator_to_digest",
                                 "astrbot_plugin_chat_digest",
                                 "add_highlight",
-                                {"umo": umo, "text": f"[翻译摘录] {out_txt[:220]}", "added_by": src, "tags": ["翻译"]},
+                                {
+                                    "umo": umo,
+                                    "text": f"[翻译摘录] {out_txt[:220]}",
+                                    "added_by": src,
+                                    "tags": ["翻译"],
+                                },
                             )
 
             # 11. 投票结单 / 公平抽奖 -> 群记忆精华归档 & 生态积分奖励
-            if ev in ("group_vote.closed", "group_vote.lottery_drawn") and self.is_rule_enabled("vote_result_to_digest_and_points"):
+            if ev in (
+                "group_vote.closed",
+                "group_vote.lottery_drawn",
+            ) and self.is_rule_enabled("vote_result_to_digest_and_points"):
                 umo = str(p.get("umo", "")).strip()
                 summary = str(p.get("summary", "")).strip()
-                if umo and summary and self.registry.has_live_plugin("astrbot_plugin_chat_digest"):
+                if (
+                    umo
+                    and summary
+                    and self.registry.has_live_plugin("astrbot_plugin_chat_digest")
+                ):
                     tag = "群投票" if ev == "group_vote.closed" else "群抽奖"
                     await self._call_target(
                         record,
                         "vote_result_to_digest_and_points",
                         "astrbot_plugin_chat_digest",
                         "add_highlight",
-                        {"umo": umo, "text": f"[{tag}] {summary[:260]}", "added_by": src, "tags": [tag]},
+                        {
+                            "umo": umo,
+                            "text": f"[{tag}] {summary[:260]}",
+                            "added_by": src,
+                            "tags": [tag],
+                        },
                     )
                 if ev == "group_vote.lottery_drawn":
                     gid = str(p.get("group_id", "")).strip()
@@ -760,42 +955,86 @@ class HubEventBus:
                         nick = str(w.get("name", "") or uid)
                         if not uid:
                             continue
-                        self.add_eco_points(scope, uid, nick, 5, src, f"抽奖中奖:{p.get('prize', '')}")
-                        record["dispatched"].append({"rule": "vote_result_to_digest_and_points", "target": "astrbot_plugin_hub", "action": "add_eco_points", "ok": True, "ms": 0, "error": ""})
+                        self.add_eco_points(
+                            scope, uid, nick, 5, src, f"抽奖中奖:{p.get('prize', '')}"
+                        )
+                        record["dispatched"].append(
+                            {
+                                "rule": "vote_result_to_digest_and_points",
+                                "target": "astrbot_plugin_hub",
+                                "action": "add_eco_points",
+                                "ok": True,
+                                "ms": 0,
+                                "error": "",
+                            }
+                        )
                         self._record_rule_hit("vote_result_to_digest_and_points", True)
-                        if gid and self.registry.has_live_plugin("astrbot_plugin_group_stats"):
+                        if gid and self.registry.has_live_plugin(
+                            "astrbot_plugin_group_stats"
+                        ):
                             await self._call_target(
                                 record,
                                 "vote_result_to_digest_and_points",
                                 "astrbot_plugin_group_stats",
                                 "add_points",
-                                {"group_id": gid, "user_id": uid, "nickname": nick, "delta": 5},
+                                {
+                                    "group_id": gid,
+                                    "user_id": uid,
+                                    "nickname": nick,
+                                    "delta": 5,
+                                },
                             )
 
             # 12. RSS 订阅雷达命中 -> 群记忆精华归档
-            if ev == "rss_radar.matched_entry" and self.is_rule_enabled("rss_radar_to_digest"):
+            if ev == "rss_radar.matched_entry" and self.is_rule_enabled(
+                "rss_radar_to_digest"
+            ):
                 umo = str(p.get("umo", "")).strip()
                 summary = str(p.get("summary", "") or p.get("title", "")).strip()
-                if umo and summary and self.registry.has_live_plugin("astrbot_plugin_chat_digest"):
+                if (
+                    umo
+                    and summary
+                    and self.registry.has_live_plugin("astrbot_plugin_chat_digest")
+                ):
                     await self._call_target(
                         record,
                         "rss_radar_to_digest",
                         "astrbot_plugin_chat_digest",
                         "add_highlight",
-                        {"umo": umo, "text": f"[RSS] {summary[:260]}", "added_by": src, "tags": ["RSS订阅"]},
+                        {
+                            "umo": umo,
+                            "text": f"[RSS] {summary[:260]}",
+                            "added_by": src,
+                            "tags": ["RSS订阅"],
+                        },
                     )
 
             # 13. 站点存活与 SSL 证书监控 -> 记忆归档 / 审计日志 / 邮件告警
-            if ev in ("url_watchdog.down", "url_watchdog.ssl_expiring", "url_watchdog.recovered") and self.is_rule_enabled("url_watchdog_ops_bridge"):
-                target_umo = str(cfg.get("ops_archive_umo", "") or p.get("umo", "")).strip()
+            if ev in (
+                "url_watchdog.down",
+                "url_watchdog.ssl_expiring",
+                "url_watchdog.recovered",
+            ) and self.is_rule_enabled("url_watchdog_ops_bridge"):
+                target_umo = str(
+                    cfg.get("ops_archive_umo", "") or p.get("umo", "")
+                ).strip()
                 summary = str(p.get("summary", "") or ev).strip()
-                if target_umo and summary and self.registry.has_live_plugin("astrbot_plugin_chat_digest"):
+                if (
+                    target_umo
+                    and summary
+                    and self.registry.has_live_plugin("astrbot_plugin_chat_digest")
+                ):
                     await self._call_target(
                         record,
                         "url_watchdog_ops_bridge",
                         "astrbot_plugin_chat_digest",
                         "add_highlight",
-                        {"umo": target_umo, "text": f"[站点监控/{ev}] {summary[:240]}", "added_by": src, "tags": ["站点监控"]},
+                        {
+                            "umo": target_umo,
+                            "text": f"[站点监控/{ev}] {summary[:240]}",
+                            "added_by": src,
+                            "tags": ["站点监控"],
+                        },
                     )
                 if self.registry.has_live_plugin("astrbot_plugin_context_analyzer"):
                     await self._call_target(
@@ -807,13 +1046,19 @@ class HubEventBus:
                     )
                 if ev in ("url_watchdog.down", "url_watchdog.ssl_expiring"):
                     alert_to = str(cfg.get("ops_alert_email", "") or "").strip()
-                    if alert_to and self.registry.has_live_plugin("astrbot_plugin_sendmail"):
+                    if alert_to and self.registry.has_live_plugin(
+                        "astrbot_plugin_sendmail"
+                    ):
                         await self._call_target(
                             record,
                             "url_watchdog_ops_bridge",
                             "astrbot_plugin_sendmail",
                             "send_mail",
-                            {"to": alert_to, "subject": f"[AstrBot 站点监控告警] {p.get('name', ev)}", "body": summary},
+                            {
+                                "to": alert_to,
+                                "subject": f"[AstrBot 站点监控告警] {p.get('name', ev)}",
+                                "body": summary,
+                            },
                         )
 
             # 14. 自定义联动规则匹配
@@ -821,8 +1066,12 @@ class HubEventBus:
                 rid = str(cr.get("id", ""))
                 if not cr.get("enabled", True):
                     continue
-                ev_match = ev in (cr.get("events") or []) or "*" in (cr.get("events") or [])
-                src_match = src in (cr.get("sources") or []) or "*" in (cr.get("sources") or [])
+                ev_match = ev in (cr.get("events") or []) or "*" in (
+                    cr.get("events") or []
+                )
+                src_match = src in (cr.get("sources") or []) or "*" in (
+                    cr.get("sources") or []
+                )
                 if not (ev_match and src_match):
                     continue
                 t_plug = str(cr.get("target_plugin", ""))

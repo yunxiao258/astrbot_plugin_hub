@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """AstrBot 插件生态中枢异步 Web 管理面板服务器（aiohttp.web）。"""
 
 from __future__ import annotations
@@ -114,7 +113,9 @@ class HubWebServer:
             public_paths = {"/", "/api/health", "/api/login", "/api/logout"}
             if path.startswith("/api/") and path not in public_paths:
                 if not self._is_authenticated(request):
-                    return web.json_response({"ok": False, "error": "需要管理员 Token 登录"}, status=401)
+                    return web.json_response(
+                        {"ok": False, "error": "需要管理员 Token 登录"}, status=401
+                    )
             resp = await handler(request)
             resp.headers["X-Content-Type-Options"] = "nosniff"
             resp.headers["X-Frame-Options"] = "SAMEORIGIN"
@@ -133,7 +134,9 @@ class HubWebServer:
         app.router.add_get("/api/rules", self._handle_list_rules)
         app.router.add_post("/api/rules/{rule_id}/toggle", self._handle_toggle_rule)
         app.router.add_post("/api/rules/custom", self._handle_add_custom_rule)
-        app.router.add_delete("/api/rules/custom/{rule_id}", self._handle_delete_custom_rule)
+        app.router.add_delete(
+            "/api/rules/custom/{rule_id}", self._handle_delete_custom_rule
+        )
         app.router.add_get("/api/events", self._handle_events)
         app.router.add_post("/api/events/emit", self._handle_emit_event)
         app.router.add_get("/api/data/{panel}", self._handle_data_panel)
@@ -191,19 +194,23 @@ class HubWebServer:
         )
 
     async def _handle_health(self, request: web.Request) -> web.Response:
-        return web.json_response({
-            "ok": True,
-            "plugin": "astrbot_plugin_hub",
-            "host": self.host,
-            "port": self.bound_port,
-            "auth_required": self.auth_required_for_request(request),
-            "uptime_seconds": int(time.monotonic() - self.started_at),
-        })
+        return web.json_response(
+            {
+                "ok": True,
+                "plugin": "astrbot_plugin_hub",
+                "host": self.host,
+                "port": self.bound_port,
+                "auth_required": self.auth_required_for_request(request),
+                "uptime_seconds": int(time.monotonic() - self.started_at),
+            }
+        )
 
     async def _handle_login(self, request: web.Request) -> web.Response:
         body = await self._read_json_dict(request)
         if body is None:
-            return web.json_response({"ok": False, "error": "无效 JSON 对象"}, status=400)
+            return web.json_response(
+                {"ok": False, "error": "无效 JSON 对象"}, status=400
+            )
         tok = str(body.get("token", "") or "").strip()
         if not tok or not hmac.compare_digest(tok, self.token):
             return web.json_response({"ok": False, "error": "Token 不正确"}, status=401)
@@ -219,33 +226,48 @@ class HubWebServer:
     async def _handle_overview(self, request: web.Request) -> web.Response:
         plugins = self.hub.registry.list_plugins(include_third_party=True)
         rules = self.hub.bus.list_rules()
-        return web.json_response({
-            "ok": True,
-            "server": {
-                "host": self.host,
-                "port": self.bound_port,
-                "url": self.url,
-                "uptime_seconds": int(time.monotonic() - self.started_at),
-            },
-            "auth": {
-                "required": self.auth_required_for_request(request),
-                "loopback_bind": self.is_loopback_bind(),
-            },
-            "auto_linkage_enabled": bool(self.hub.cfg_bool("auto_linkage_enabled", True)),
-            "event_count": len(self.hub.bus._events),
-            "total_rule_triggers": sum(int(r.get("triggered_count", 0)) for r in rules),
-            "eco_users": self.hub.bus.count_eco_users(),
-            "plugins": plugins,
-        })
+        return web.json_response(
+            {
+                "ok": True,
+                "server": {
+                    "host": self.host,
+                    "port": self.bound_port,
+                    "url": self.url,
+                    "uptime_seconds": int(time.monotonic() - self.started_at),
+                },
+                "auth": {
+                    "required": self.auth_required_for_request(request),
+                    "loopback_bind": self.is_loopback_bind(),
+                },
+                "auto_linkage_enabled": bool(
+                    self.hub.cfg_bool("auto_linkage_enabled", True)
+                ),
+                "event_count": len(self.hub.bus._events),
+                "total_rule_triggers": sum(
+                    int(r.get("triggered_count", 0)) for r in rules
+                ),
+                "eco_users": self.hub.bus.count_eco_users(),
+                "plugins": plugins,
+            }
+        )
 
     async def _handle_plugins(self, request: web.Request) -> web.Response:
         eco_only = request.query.get("eco_only", "").lower() in ("1", "true", "yes")
-        return web.json_response({"ok": True, "plugins": self.hub.registry.list_plugins(include_third_party=not eco_only)})
+        return web.json_response(
+            {
+                "ok": True,
+                "plugins": self.hub.registry.list_plugins(
+                    include_third_party=not eco_only
+                ),
+            }
+        )
 
     async def _handle_get_config(self, request: web.Request) -> web.Response:
         name = request.match_info["name"]
         try:
-            return web.json_response({"ok": True, **self.hub.registry.get_plugin_config(name)})
+            return web.json_response(
+                {"ok": True, **self.hub.registry.get_plugin_config(name)}
+            )
         except ValueError as exc:
             return web.json_response({"ok": False, "error": str(exc)}, status=400)
 
@@ -253,7 +275,9 @@ class HubWebServer:
         name = request.match_info["name"]
         body = await self._read_json_dict(request)
         if body is None:
-            return web.json_response({"ok": False, "error": "无效 JSON 对象"}, status=400)
+            return web.json_response(
+                {"ok": False, "error": "无效 JSON 对象"}, status=400
+            )
         try:
             res = self.hub.registry.save_plugin_config(name, body)
             return web.json_response(res)
@@ -264,14 +288,20 @@ class HubWebServer:
         name = request.match_info["name"]
         body = await self._read_json_dict(request)
         if body is None:
-            return web.json_response({"ok": False, "error": "无效 JSON 对象"}, status=400)
+            return web.json_response(
+                {"ok": False, "error": "无效 JSON 对象"}, status=400
+            )
         action = str(body.get("action", "") or "").strip()
         raw_params = body.get("params")
         if raw_params is not None and not isinstance(raw_params, dict):
-            return web.json_response({"ok": False, "error": "params 必须为 JSON 对象"}, status=400)
+            return web.json_response(
+                {"ok": False, "error": "params 必须为 JSON 对象"}, status=400
+            )
         params = raw_params or {}
         if not action:
-            return web.json_response({"ok": False, "error": "缺少 action 参数"}, status=400)
+            return web.json_response(
+                {"ok": False, "error": "缺少 action 参数"}, status=400
+            )
         res = await self.hub.registry.call_action(name, action, params)
         return web.json_response(res, status=200 if res.get("ok") else 400)
 
@@ -282,25 +312,40 @@ class HubWebServer:
         rule_id = request.match_info["rule_id"]
         body = await self._read_json_dict(request)
         if body is None:
-            return web.json_response({"ok": False, "error": "无效 JSON 对象"}, status=400)
+            return web.json_response(
+                {"ok": False, "error": "无效 JSON 对象"}, status=400
+            )
         res = self.hub.bus.toggle_rule(rule_id, bool(body.get("enabled", True)))
         if res is None:
-            return web.json_response({"ok": False, "error": f"未找到规则 {rule_id}"}, status=404)
+            return web.json_response(
+                {"ok": False, "error": f"未找到规则 {rule_id}"}, status=404
+            )
         return web.json_response({"ok": True, "rule": res})
 
     async def _handle_add_custom_rule(self, request: web.Request) -> web.Response:
         body = await self._read_json_dict(request)
         if body is None:
-            return web.json_response({"ok": False, "error": "无效 JSON 对象"}, status=400)
+            return web.json_response(
+                {"ok": False, "error": "无效 JSON 对象"}, status=400
+            )
         try:
             ev = str(body.get("event_type", "") or "").strip()
             tp = str(body.get("target_plugin", "") or "").strip()
             ta = str(body.get("target_action", "") or "").strip()
             raw_tpl = body.get("payload_template")
             if raw_tpl is not None and not isinstance(raw_tpl, dict):
-                return web.json_response({"ok": False, "error": "payload_template 必须为 JSON 对象"}, status=400)
+                return web.json_response(
+                    {"ok": False, "error": "payload_template 必须为 JSON 对象"},
+                    status=400,
+                )
             if not (ev and tp and ta):
-                return web.json_response({"ok": False, "error": "event_type / target_plugin / target_action 不能为空"}, status=400)
+                return web.json_response(
+                    {
+                        "ok": False,
+                        "error": "event_type / target_plugin / target_action 不能为空",
+                    },
+                    status=400,
+                )
             rule = self.hub.bus.add_custom_rule(
                 name=str(body.get("name", "") or ""),
                 source=str(body.get("source", "*") or "*"),
@@ -326,21 +371,38 @@ class HubWebServer:
             limit = 50
         ev_type = request.query.get("event_type", "")
         src = request.query.get("source", "")
-        return web.json_response({"ok": True, "events": self.hub.bus.recent_events(limit=limit, event_type=ev_type, source=src)})
+        return web.json_response(
+            {
+                "ok": True,
+                "events": self.hub.bus.recent_events(
+                    limit=limit, event_type=ev_type, source=src
+                ),
+            }
+        )
 
     async def _handle_emit_event(self, request: web.Request) -> web.Response:
         body = await self._read_json_dict(request)
         if body is None:
-            return web.json_response({"ok": False, "error": "无效 JSON 对象"}, status=400)
-        source = str(body.get("source", "astrbot_plugin_hub") or "astrbot_plugin_hub").strip()
+            return web.json_response(
+                {"ok": False, "error": "无效 JSON 对象"}, status=400
+            )
+        source = str(
+            body.get("source", "astrbot_plugin_hub") or "astrbot_plugin_hub"
+        ).strip()
         event_type = str(body.get("event_type", "") or "").strip()
         raw_payload = body.get("payload")
         if raw_payload is not None and not isinstance(raw_payload, dict):
-            return web.json_response({"ok": False, "error": "payload 必须为 JSON 对象"}, status=400)
+            return web.json_response(
+                {"ok": False, "error": "payload 必须为 JSON 对象"}, status=400
+            )
         payload = raw_payload or {}
         if not event_type:
-            return web.json_response({"ok": False, "error": "缺少 event_type"}, status=400)
-        rec = await self.hub.bus.emit_async(source=source, event_type=event_type, payload=payload)
+            return web.json_response(
+                {"ok": False, "error": "缺少 event_type"}, status=400
+            )
+        rec = await self.hub.bus.emit_async(
+            source=source, event_type=event_type, payload=payload
+        )
         return web.json_response({"ok": True, "event": rec})
 
     async def _handle_data_panel(self, request: web.Request) -> web.Response:
@@ -351,12 +413,16 @@ class HubWebServer:
     async def _handle_adjust_points(self, request: web.Request) -> web.Response:
         body = await self._read_json_dict(request)
         if body is None:
-            return web.json_response({"ok": False, "error": "无效 JSON 对象"}, status=400)
+            return web.json_response(
+                {"ok": False, "error": "无效 JSON 对象"}, status=400
+            )
         try:
             uid = str(body.get("user_id", "") or "").strip()
             delta = int(body.get("delta", 0))
             if not uid or delta == 0:
-                return web.json_response({"ok": False, "error": "user_id 与非零 delta 必填"}, status=400)
+                return web.json_response(
+                    {"ok": False, "error": "user_id 与非零 delta 必填"}, status=400
+                )
             rec = self.hub.bus.add_eco_points(
                 scope=str(body.get("scope", "global") or "global"),
                 user_id=uid,

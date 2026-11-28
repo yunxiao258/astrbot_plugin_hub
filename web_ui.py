@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """AstrBot 插件生态中枢单页 Web 管理面板（SnowLuma 控制台风格：极简云白/深空双模 + 可折叠图标侧栏，纯静态无外部 CDN）。"""
 
 DASHBOARD_HTML = r"""<!DOCTYPE html>

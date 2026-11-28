@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """AstrBot 插件生态中枢与端口管理面板主入口（astrbot_plugin_hub）。"""
 
 from __future__ import annotations
@@ -14,7 +13,7 @@ from astrbot.api import AstrBotConfig, logger
 from astrbot.api.all import MessageChain
 from astrbot.api.event import AstrMessageEvent, filter
 from astrbot.api.message_components import Plain
-from astrbot.api.star import Context, Star, StarTools, register
+from astrbot.api.star import Context, Star, StarTools
 
 try:
     from astrbot.core.utils.astrbot_path import get_astrbot_data_path
@@ -40,17 +39,18 @@ PLUGIN_DESC = (
     "AstrBot 全插件联动中枢与 Web 管理面板：提供跨插件事件总线、13 条开箱即用自动化联动管线、"
     "生态统一积分榜、在线配置编辑器与端口可视化管理台（默认 127.0.0.1:8686）"
 )
-PLUGIN_VERSION = "1.3.2"
+PLUGIN_VERSION = "1.3.3"
 PLUGIN_REPO = "https://github.com/yunxiao258/astrbot_plugin_hub"
 
-_CMD_RE = re.compile(r"^[\\/／]?\s*(?:中枢|hub|面板|联动)\b\s*(.*)$", re.IGNORECASE | re.S)
+_CMD_RE = re.compile(
+    r"^[\\/／]?\s*(?:中枢|hub|面板|联动)\b\s*(.*)$", re.IGNORECASE | re.DOTALL
+)
 
 
 def _split_csv(raw: str) -> set[str]:
     return {x.strip() for x in (raw or "").split(",") if x.strip()}
 
 
-@register(PLUGIN_NAME, PLUGIN_AUTHOR, PLUGIN_DESC, PLUGIN_VERSION, repo=PLUGIN_REPO)
 class PluginHubStar(Star):
     """AstrBot 全插件联动中枢与 Web 可视化管理台。"""
 
@@ -68,20 +68,32 @@ class PluginHubStar(Star):
         base_data = (
             get_astrbot_data_path()
             if callable(get_astrbot_data_path)
-            else os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            else os.path.dirname(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            )
         )
         self.astrbot_data_dir = os.path.abspath(base_data)
         if data_dir:
             self.data_dir = os.path.abspath(data_dir)
         else:
             try:
-                self.data_dir = os.path.abspath(str(StarTools.get_data_dir(PLUGIN_NAME)))
+                self.data_dir = os.path.abspath(
+                    str(StarTools.get_data_dir(PLUGIN_NAME))
+                )
             except Exception:
-                self.data_dir = os.path.join(self.astrbot_data_dir, "plugin_data", PLUGIN_NAME)
+                self.data_dir = os.path.join(
+                    self.astrbot_data_dir, "plugin_data", PLUGIN_NAME
+                )
         os.makedirs(self.data_dir, exist_ok=True)
-        self.plugins_dir = os.path.abspath(plugins_dir) if plugins_dir else os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        self.plugins_dir = (
+            os.path.abspath(plugins_dir)
+            if plugins_dir
+            else os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        )
 
-        self.registry = PluginRegistry(self.context, self.plugins_dir, self.astrbot_data_dir)
+        self.registry = PluginRegistry(
+            self.context, self.plugins_dir, self.astrbot_data_dir
+        )
         self.registry.register_local_instance(PLUGIN_NAME, self)
         self.bus = HubEventBus(
             data_dir=self.data_dir,
@@ -148,10 +160,18 @@ class PluginHubStar(Star):
             )
             try:
                 bound = await self.web_server.start()
-                auth_tip = "本机免登" if (self.web_server.is_loopback_bind() and not req_local) else "Token 鉴权已启用"
-                logger.info(f"【{PLUGIN_NAME}】Web 管理面板已启动：http://{host}:{bound}（{auth_tip}）")
+                auth_tip = (
+                    "本机免登"
+                    if (self.web_server.is_loopback_bind() and not req_local)
+                    else "Token 鉴权已启用"
+                )
+                logger.info(
+                    f"【{PLUGIN_NAME}】Web 管理面板已启动：http://{host}:{bound}（{auth_tip}）"
+                )
             except Exception as exc:
-                logger.error(f"【{PLUGIN_NAME}】Web 管理面板启动失败 ({host}:{port}): {exc}")
+                logger.error(
+                    f"【{PLUGIN_NAME}】Web 管理面板启动失败 ({host}:{port}): {exc}"
+                )
                 self.web_server = None
 
     async def terminate(self) -> None:
@@ -181,17 +201,34 @@ class PluginHubStar(Star):
             "actions": ["get_leaderboard", "list_rules", "toggle_rule", "emit_event"],
         }
 
-    async def hub_action(self, action: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
+    async def hub_action(
+        self, action: str, params: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         p = params or {}
         if action == "get_leaderboard":
-            return {"ok": True, "data": self.bus.get_eco_leaderboard(scope=p.get("scope"), limit=int(p.get("limit", 20)))}
+            return {
+                "ok": True,
+                "data": self.bus.get_eco_leaderboard(
+                    scope=p.get("scope"), limit=int(p.get("limit", 20))
+                ),
+            }
         if action == "list_rules":
             return {"ok": True, "data": self.bus.list_rules()}
         if action == "toggle_rule":
-            res = self.bus.toggle_rule(str(p.get("rule_id", "")), bool(p.get("enabled", True)))
-            return {"ok": res is not None, "data": res, "error": "" if res else "未找到规则"}
+            res = self.bus.toggle_rule(
+                str(p.get("rule_id", "")), bool(p.get("enabled", True))
+            )
+            return {
+                "ok": res is not None,
+                "data": res,
+                "error": "" if res else "未找到规则",
+            }
         if action == "emit_event":
-            rec = await self.bus.emit_async(str(p.get("source", PLUGIN_NAME)), str(p.get("event_type", "")), p.get("payload") or {})
+            rec = await self.bus.emit_async(
+                str(p.get("source", PLUGIN_NAME)),
+                str(p.get("event_type", "")),
+                p.get("payload") or {},
+            )
             return {"ok": True, "data": rec}
         return {"ok": False, "error": f"不支持的动作：{action}"}
 
@@ -250,7 +287,9 @@ class PluginHubStar(Star):
             return self._reply(event, self._points_text())
         if sub in ("触发", "action", "call"):
             return self._reply(event, await self._handle_trigger_cmd(event, arg))
-        return self._reply(event, f"❌ 未知子指令「{parts[0]}」，发送 `/中枢 帮助` 查看用法。")
+        return self._reply(
+            event, f"❌ 未知子指令「{parts[0]}」，发送 `/中枢 帮助` 查看用法。"
+        )
 
     def _status_text(self) -> str:
         plugins = self.registry.list_plugins(include_third_party=False)
@@ -271,8 +310,13 @@ class PluginHubStar(Star):
 
     def _panel_text(self, event: Any) -> str:
         if self.web_server is None:
-            return "⏸️ Web 管理面板当前未启动（请在配置中开启 `web_enabled=true` 后重载）。"
-        req = not self.web_server.is_loopback_bind() or self.web_server.require_auth_on_localhost
+            return (
+                "⏸️ Web 管理面板当前未启动（请在配置中开启 `web_enabled=true` 后重载）。"
+            )
+        req = (
+            not self.web_server.is_loopback_bind()
+            or self.web_server.require_auth_on_localhost
+        )
         lines = [
             "🌐 AstrBot 插件生态 Web 管理面板",
             f"地址：{self.web_server.url}",
@@ -280,11 +324,15 @@ class PluginHubStar(Star):
             f"鉴权：{'🔐 Token 强制登录' if req else '🔓 本机免登（外网暴露自动切换强制 Token）'}",
         ]
         if req and self._is_admin(event):
-            is_private = "FriendMessage" in str(getattr(event, "unified_msg_origin", ""))
+            is_private = "FriendMessage" in str(
+                getattr(event, "unified_msg_origin", "")
+            )
             if is_private:
                 lines.append(f"管理员 Token：`{self.web_server.token}`")
             else:
-                lines.append("💡 为防群聊泄露令牌，请私聊机器人发送 `/中枢 面板` 或查看 `data/hub_token.txt` 获取 Token。")
+                lines.append(
+                    "💡 为防群聊泄露令牌，请私聊机器人发送 `/中枢 面板` 或查看 `data/hub_token.txt` 获取 Token。"
+                )
         return "\n".join(lines)
 
     def _handle_rules_cmd(self, event: Any, arg: str) -> str:
@@ -293,7 +341,9 @@ class PluginHubStar(Star):
             lines = [f"⚡ 自动化联动管线（共 {len(rules)} 条）："]
             for r in rules:
                 st = "✅" if r["enabled"] else "⏸️"
-                lines.append(f"{st} `{r['id']}` — {r['name']}（已触发 {r['triggered_count']} 次）")
+                lines.append(
+                    f"{st} `{r['id']}` — {r['name']}（已触发 {r['triggered_count']} 次）"
+                )
             lines.append("\n管理员可用 `/中枢 联动 开启|关闭 <规则ID>` 切换。")
             return "\n".join(lines)
         parts = arg.split(None, 1)
@@ -308,7 +358,9 @@ class PluginHubStar(Star):
             res = self.bus.toggle_rule(rid, en)
             if not res:
                 return f"❌ 未找到规则 ID：{rid}"
-            return f"{'✅ 已开启' if en else '⏸️ 已关闭'}联动规则：{res['name']} (`{rid}`)"
+            return (
+                f"{'✅ 已开启' if en else '⏸️ 已关闭'}联动规则：{res['name']} (`{rid}`)"
+            )
         return "❌ 用法：`/中枢 联动 [列表 | 开启 <规则ID> | 关闭 <规则ID>]`"
 
     def _events_text(self, limit: int) -> str:
@@ -320,7 +372,9 @@ class PluginHubStar(Star):
             dispatched = len(e.get("dispatched") or [])
             ok_cnt = sum(1 for d in (e.get("dispatched") or []) if d.get("ok"))
             src = str(e.get("source", "")).replace("astrbot_plugin_", "")
-            lines.append(f"• [{str(e.get('ts',''))[5:16]}] {src} → `{e.get('event_type')}` (联动 {ok_cnt}/{dispatched})")
+            lines.append(
+                f"• [{str(e.get('ts', ''))[5:16]}] {src} → `{e.get('event_type')}` (联动 {ok_cnt}/{dispatched})"
+            )
         return "\n".join(lines)
 
     def _points_text(self) -> str:
@@ -329,8 +383,13 @@ class PluginHubStar(Star):
             return "🏆 生态统一积分榜暂无记录（参与群聊小游戏、发言统计、每日运势或娱乐互动即可自动累计）。"
         lines = ["🏆 AstrBot 全生态统一积分榜 Top 10："]
         for i, u in enumerate(lb, 1):
-            src_brief = ", ".join(f"{k.replace('astrbot_plugin_','')}:{v}" for k, v in (u.get("sources") or {}).items())
-            lines.append(f"{i}. {u.get('nickname', u.get('user_id'))} — {u.get('total', 0)} 分（{src_brief}）")
+            src_brief = ", ".join(
+                f"{k.replace('astrbot_plugin_', '')}:{v}"
+                for k, v in (u.get("sources") or {}).items()
+            )
+            lines.append(
+                f"{i}. {u.get('nickname', u.get('user_id'))} — {u.get('total', 0)} 分（{src_brief}）"
+            )
         return "\n".join(lines)
 
     async def _handle_trigger_cmd(self, event: Any, arg: str) -> str:
