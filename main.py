@@ -14,7 +14,7 @@ from astrbot.api import AstrBotConfig, logger
 from astrbot.api.all import MessageChain
 from astrbot.api.event import AstrMessageEvent, filter
 from astrbot.api.message_components import Plain
-from astrbot.api.star import Context, Star, register
+from astrbot.api.star import Context, Star, StarTools, register
 
 try:
     from astrbot.core.utils.astrbot_path import get_astrbot_data_path
@@ -40,7 +40,7 @@ PLUGIN_DESC = (
     "AstrBot 全插件联动中枢与 Web 管理面板：提供跨插件事件总线、13 条开箱即用自动化联动管线、"
     "生态统一积分榜、在线配置编辑器与端口可视化管理台（默认 127.0.0.1:8686）"
 )
-PLUGIN_VERSION = "1.3.0"
+PLUGIN_VERSION = "1.3.1"
 PLUGIN_REPO = "https://github.com/yunxiao258/astrbot_plugin_hub"
 
 _CMD_RE = re.compile(r"^[\\/／]?\s*(?:中枢|hub|面板|联动)\b\s*(.*)$", re.IGNORECASE | re.S)
@@ -65,9 +65,19 @@ class PluginHubStar(Star):
     ) -> None:
         super().__init__(context)
         self.config: dict[str, Any] = config if isinstance(config, dict) else {}
-        base_data = get_astrbot_data_path() if callable(get_astrbot_data_path) else os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        base_data = (
+            get_astrbot_data_path()
+            if callable(get_astrbot_data_path)
+            else os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        )
         self.astrbot_data_dir = os.path.abspath(base_data)
-        self.data_dir = os.path.abspath(data_dir) if data_dir else os.path.join(self.astrbot_data_dir, "plugin_data", PLUGIN_NAME)
+        if data_dir:
+            self.data_dir = os.path.abspath(data_dir)
+        else:
+            try:
+                self.data_dir = os.path.abspath(str(StarTools.get_data_dir(PLUGIN_NAME)))
+            except Exception:
+                self.data_dir = os.path.join(self.astrbot_data_dir, "plugin_data", PLUGIN_NAME)
         os.makedirs(self.data_dir, exist_ok=True)
         self.plugins_dir = os.path.abspath(plugins_dir) if plugins_dir else os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 

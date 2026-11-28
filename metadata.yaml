@@ -1,5 +1,6 @@
 name: astrbot_plugin_hub
 display_name: 插件生态中枢与管理面板
+short_desc: 全插件事件总线、13 条自动化联动管线与本地 Web 管理台
 desc: AstrBot 全插件联动中枢与 Web 管理面板：提供跨插件事件总线、13 条开箱即用自动化联动管线、生态统一积分榜、在线配置编辑器与端口可视化管理台（默认 127.0.0.1:8686）
 help: |
   统一入口：/中枢（别名 /hub、/面板、/联动）
@@ -10,6 +11,7 @@ help: |
   - /中枢 积分 [排行]：查看全生态统一积分榜
   - /中枢 触发 <插件名> <动作> [JSON参数]：手动触发指定插件联动动作（管理员）
   - /中枢 帮助：查看完整帮助
-version: 1.3.0
+version: 1.3.1
 author: 云晓
 repo: https://github.com/yunxiao258/astrbot_plugin_hub
+astrbot_version: ">=4.0.0"
