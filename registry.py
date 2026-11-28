@@ -405,7 +405,7 @@ class PluginRegistry:
             if not isinstance(spec, dict):
                 continue
             val = merged.get(k, spec.get("default"))
-            secret = is_secret_key(k)
+            secret = bool(spec.get("secret", False)) or is_secret_key(k)
             has_value = bool(val) if isinstance(val, str) else val is not None
             display_val = (
                 SECRET_MASK
@@ -458,7 +458,9 @@ class PluginRegistry:
                 continue
             raw = incoming[k]
             # 脱敏占位符原样提交时保留原密文不覆盖
-            if is_secret_key(k) and raw == SECRET_MASK:
+            if (
+                bool(spec.get("secret", False)) or is_secret_key(k)
+            ) and raw == SECRET_MASK:
                 continue
             t = str(spec.get("type", "string")).lower()
             if t == "bool":

@@ -542,6 +542,49 @@ class TestPluginHub(unittest.TestCase):
 
         asyncio.run(_run())
 
+    def test_schema_secret_flag_masking_and_preservation(self) -> None:
+        # 即使字段名不含 password/token，只要 _conf_schema.json 标记 secret: true 也必须脱敏且保存不覆盖
+        plug_dir = os.path.join(self.plugins_dir, "astrbot_plugin_custom_sec")
+        os.makedirs(plug_dir, exist_ok=True)
+        with open(
+            os.path.join(plug_dir, "_conf_schema.json"), "w", encoding="utf-8"
+        ) as f:
+            json.dump(
+                {
+                    "webhook_endpoint": {
+                        "type": "string",
+                        "default": "",
+                        "secret": True,
+                    },
+                    "retry_count": {"type": "int", "default": 3},
+                },
+                f,
+            )
+        cfg_dir = os.path.join(self.hub.astrbot_data_dir, "config")
+        os.makedirs(cfg_dir, exist_ok=True)
+        cfg_file = os.path.join(cfg_dir, "astrbot_plugin_custom_sec_config.json")
+        with open(cfg_file, "w", encoding="utf-8") as f:
+            json.dump(
+                {"webhook_endpoint": "https://secret.hook/xyz", "retry_count": 3}, f
+            )
+
+        view = self.hub.registry.get_plugin_config("astrbot_plugin_custom_sec")
+        by_key = {item["key"]: item for item in view["fields"]}
+        self.assertTrue(by_key["webhook_endpoint"]["is_secret"])
+        self.assertNotEqual(
+            by_key["webhook_endpoint"]["value"], "https://secret.hook/xyz"
+        )
+        self.hub.registry.save_plugin_config(
+            "astrbot_plugin_custom_sec",
+            {
+                "webhook_endpoint": by_key["webhook_endpoint"]["value"],
+                "retry_count": 5,
+            },
+        )
+        saved = json.load(open(cfg_file, encoding="utf-8"))
+        self.assertEqual(saved["webhook_endpoint"], "https://secret.hook/xyz")
+        self.assertEqual(saved["retry_count"], 5)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=1)
