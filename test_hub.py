@@ -323,6 +323,13 @@ class TestPluginHub(unittest.TestCase):
                     self.assertEqual(r.status, 400)
                 async with cli.post(f"{base}/api/plugins/bad$name/config", json={"enabled": True}) as r:
                     self.assertEqual(r.status, 400)
+                # 1b. Non-dict JSON & invalid payload types return 400 (never 500)
+                async with cli.post(f"{base}/api/login", json=["not", "a", "dict"]) as r:
+                    self.assertEqual(r.status, 400)
+                async with cli.post(f"{base}/api/events/emit", json={"event_type": "x", "payload": [1, 2, 3]}) as r:
+                    self.assertEqual(r.status, 400)
+                async with cli.post(f"{base}/api/plugins/astrbot_plugin_hub/action", json={"action": "list_rules", "params": "bad"}) as r:
+                    self.assertEqual(r.status, 400)
                 # 2. Dashboard HTML includes strict esc() XSS sanitizer, live uptime ticker, and no-store cache header
                 async with cli.get(f"{base}/") as r:
                     self.assertIn("no-store", r.headers.get("Cache-Control", ""))

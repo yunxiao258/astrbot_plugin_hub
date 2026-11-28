@@ -438,7 +438,7 @@ class HubEventBus:
         payload: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """同步安全入口：记录事件；若存在运行中的事件循环则异步调度联动规则。"""
-        data = dict(payload or {})
+        data = dict(payload) if isinstance(payload, dict) else {}
         if data.get("_hub_origin") or self._dispatch_depth >= 2:
             # 防止联动二次重入造成循环风暴
             return {"skipped": True, "reason": "reentrant"}
@@ -474,7 +474,7 @@ class HubEventBus:
         payload: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """异步等待入口：记录事件并同步等待全部匹配联动规则执行完成。"""
-        data = dict(payload or {})
+        data = dict(payload) if isinstance(payload, dict) else {}
         if data.get("_hub_origin") or self._dispatch_depth >= 2:
             return {"skipped": True, "reason": "reentrant"}
 
